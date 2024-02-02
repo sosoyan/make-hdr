@@ -1,0 +1,11 @@
+.DS_Store
+*.sln
+*.xcodeproj
+*.db
+/.vs
+/test/*~
+/test/*save
+/test/*lock
+/make_hdr
+/build
+/distrib

@@ -1,0 +1,12 @@
+[submodule "modules/openfx"]
+	path = modules/openfx
+	url = https://github.com/AcademySoftwareFoundation/openfx.git
+[submodule "modules/spdlog"]
+	path = modules/spdlog
+	url = https://github.com/gabime/spdlog.git
+[submodule "modules/clapack"]
+	path = modules/clapack
+	url = https://github.com/NIRALUser/CLAPACK.git
+[submodule "modules/armadillo"]
+	path = modules/armadillo
+	url = https://gitlab.com/conradsnicta/armadillo-code.git

@@ -1,0 +1,204 @@
+#! C:/Program Files/Nuke13.1v2/nuke-13.1.2.dll -nx
+version 13.1 v2
+define_window_layout_xml {<?xml version="1.0" encoding="UTF-8"?>
+<layout version="1.0">
+    <window x="0" y="0" w="2557" h="1368" screen="0">
+        <splitter orientation="1">
+            <split size="40"/>
+            <dock id="" hideTitles="1" activePageId="Toolbar.1">
+                <page id="Toolbar.1"/>
+            </dock>
+            <split size="1894" stretch="1"/>
+            <splitter orientation="2">
+                <split size="778"/>
+                <dock id="" activePageId="Viewer.1">
+                    <page id="Viewer.1"/>
+                </dock>
+                <split size="548"/>
+                <dock id="" activePageId="DAG.1" focus="true">
+                    <page id="DAG.1"/>
+                    <page id="Curve Editor.1"/>
+                    <page id="DopeSheet.1"/>
+                </dock>
+            </splitter>
+            <split size="615"/>
+            <dock id="" activePageId="Properties.1">
+                <page id="Properties.1"/>
+                <page id="uk.co.thefoundry.backgroundrenderview.1"/>
+            </dock>
+        </splitter>
+    </window>
+</layout>
+}
+Root {
+ inputs 0
+ name //meganas/dev/make_hdr/test/room.nk
+ project_directory "\[python \{nuke.script_directory()\}]"
+ frame 51
+ format "2048 1556 0 0 2048 1556 1 2K_Super_35(full-ap)"
+ proxy_type scale
+ proxy_format "1024 778 0 0 1024 778 1 1K_Super_35(full-ap)"
+ colorManagement OCIO
+ defaultViewerLUT "OCIO LUTs"
+ workingSpaceLUT scene_linear
+ monitorLut ACES/Rec.709
+ monitorOutLUT "sRGB (ACES)"
+ int8Lut matte_paint
+ int16Lut texture_paint
+ logLut compositing_log
+ floatLut scene_linear
+}
+Read {
+ inputs 0
+ file_type jpeg
+ file "\[python \{nuke.script_directory()\}]/images/10.JPG"
+ format "3120 2080 0 0 3120 2080 1 "
+ origset true
+ metadatafilter exp
+ name Read10
+ xpos 1280
+ ypos -333
+}
+Read {
+ inputs 0
+ file_type jpeg
+ file "\[python \{nuke.script_directory()\}]/images/09.JPG"
+ format "3120 2080 0 0 3120 2080 1 "
+ origset true
+ metadatafilter exp
+ name Read9
+ xpos 1170
+ ypos -333
+}
+Read {
+ inputs 0
+ file_type jpeg
+ file "\[python \{nuke.script_directory()\}]/images/08.JPG"
+ format "3120 2080 0 0 3120 2080 1 "
+ origset true
+ metadatafilter exp
+ name Read8
+ xpos 1060
+ ypos -333
+}
+Read {
+ inputs 0
+ file_type jpeg
+ file "\[python \{nuke.script_directory()\}]/images/07.JPG"
+ format "3120 2080 0 0 3120 2080 1 "
+ origset true
+ metadatafilter exp
+ name Read7
+ xpos 950
+ ypos -333
+}
+Read {
+ inputs 0
+ file_type jpeg
+ file "\[python \{nuke.script_directory()\}]/images/06.JPG"
+ format "3120 2080 0 0 3120 2080 1 "
+ origset true
+ metadatafilter exp
+ name Read6
+ xpos 840
+ ypos -333
+}
+Read {
+ inputs 0
+ file_type jpeg
+ file "\[python \{nuke.script_directory()\}]/images/05.JPG"
+ format "3120 2080 0 0 3120 2080 1 "
+ origset true
+ metadatafilter exp
+ name Read5
+ xpos 730
+ ypos -333
+}
+Read {
+ inputs 0
+ file_type jpeg
+ file "\[python \{nuke.script_directory()\}]/images/04.JPG"
+ format "3120 2080 0 0 3120 2080 1 "
+ origset true
+ metadatafilter exp
+ name Read4
+ xpos 620
+ ypos -333
+}
+Read {
+ inputs 0
+ file_type jpeg
+ file "\[python \{nuke.script_directory()\}]/images/03.JPG"
+ format "3120 2080 0 0 3120 2080 1 "
+ origset true
+ metadatafilter exp
+ name Read3
+ xpos 510
+ ypos -333
+}
+Read {
+ inputs 0
+ file_type jpeg
+ file "\[python \{nuke.script_directory()\}]/images/02.JPG"
+ format "3120 2080 0 0 3120 2080 1 "
+ origset true
+ metadatafilter exp
+ name Read2
+ xpos 400
+ ypos -333
+}
+Read {
+ inputs 0
+ file_type jpeg
+ file "\[python \{nuke.script_directory()\}]/images/01.JPG"
+ format "3120 2080 0 0 3120 2080 1 "
+ origset true
+ metadatafilter exp
+ name Read1
+ xpos 290
+ ypos -333
+}
+OFXnet.sf.openfx.make_hdr_v1 {
+ inputs 10
+ exposure_times 1
+ calibrate true
+ 1 0.06666666667
+ 2 0.03333333333
+ 3 0.01666666667
+ 4 0.008
+ 5 0.004
+ 6 0.002
+ 7 0.001
+ 8 0.0005
+ 9 0.00025
+ 10 0.000125
+ 11 0
+ 12 0
+ 13 0
+ 14 0
+ 15 0
+ 16 0
+ tone_mapping 1
+ exposure -8
+ gamma 1
+ highlights 1
+ advanced 0
+ show_samples false
+ samples 100
+ smoothness 50
+ input_depth "8 bit"
+ log_level warn
+ name MakeHDR1
+ xpos 782
+ ypos -125
+}
+Viewer {
+ frame_range 1-100
+ colour_sample_bbox {-0.3166666627 0.4833333194 -0.3153846264 0.4846153855}
+ samplepoints {{0.282051295 0.25}
+   }
+ viewerProcess "sRGB (default)"
+ name Viewer1
+ xpos 782
+ ypos -42
+}
