@@ -15,7 +15,7 @@ Works consistent in compositing applications like Nuke, Fusion, Natron. 
 ## How to Build
 ```
 git clone https://github.com/Sosoyan/make-hdr.git && cd make-hdr
-git submodule update --int
+git submodule update --init
 mkdir build && cd build
 cmake .. && make install
 ```
