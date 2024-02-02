@@ -4592,7 +4592,7 @@
 		<item>
 			<Enabled>1</Enabled>
 			<HasAnimation>0</HasAnimation>
-			<Value>&lt;Name&gt;OCIO&lt;/Name&gt;&lt;Value&gt;//meganas/software/thirdparty/natron/Natron-2.5.0-Windows-x86_64/Resources/OpenColorIO-Configs/blender&lt;/Value&gt;&lt;Name&gt;Project&lt;/Name&gt;&lt;Value&gt;//meganas/dev/make_hdr/test&lt;/Value&gt;</Value>
+			<Value></Value>
 			<Default></Default>
 			<HasMaster>0</HasMaster>
 			<Expression></Expression>
