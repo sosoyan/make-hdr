@@ -31,6 +31,8 @@ Copy make_hdr.ofx.bundle directory to your system's default OFX_PLUGIN_PATH or w
 2. Connect your source images shot with multiple shutter speed up to 16 inputs.
 3. Fill the details of exposure times in seconds for appropriate inputs, i.e. for 1/250 shutter speed enter 0.004.
 
+[![Create ACES HDRIs in NukeX using MakeHDR and CaraVR](https://img.youtube.com/vi/yTeBWqiZiTs/0.jpg)](https://www.youtube.com/watch?v=yTeBWqiZiTsE)
+
 ## Node Parameters Reference
 exposure_times
 - 1-16: Shutter speeds of corresponding source input in seconds
