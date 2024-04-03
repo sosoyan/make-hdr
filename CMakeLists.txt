@@ -17,7 +17,7 @@ include_directories(${CMAKE_SOURCE_DIR}/modules/armadillo/include)
 add_library(make_hdr SHARED ${CMAKE_SOURCE_DIR}/source/effect.cpp)
 
 if (UNIX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 	
 	if(APPLE)
