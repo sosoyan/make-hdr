@@ -199,6 +199,9 @@ void EffectPluginFactory::describeInContext(OFX::ImageEffectDescriptor& desc, OF
     OFX::ChoiceParamDescriptor* input_depth_param = desc.defineChoiceParam("input_depth");
     OFX::ChoiceParamDescriptor* log_level_param = desc.defineChoiceParam("log_level");
 
+    exposure_times_group->setLabel("exposure times");
+    tone_mapping_group->setLabel("tone mapping");
+
     calibrate_param->setDefault(true);
     calibrate_param->setLabel("calibrate response");
     calibrate_param->setParent(*exposure_times_group);
@@ -217,11 +220,13 @@ void EffectPluginFactory::describeInContext(OFX::ImageEffectDescriptor& desc, OF
     
     show_samples_param->setDefault(false);
     show_samples_param->setParent(*advanced_group);
+    show_samples_param->setLabel("show samples");
 
     input_depth_param->appendOption("8 bit");
     input_depth_param->appendOption("10 bit");
     input_depth_param->appendOption("12 bit");
     input_depth_param->setParent(*advanced_group);
+    input_depth_param->setLabel("input depth");
 
     samples_param->setDefault(100);
     samples_param->setDisplayRange(1, 100);
@@ -238,6 +243,7 @@ void EffectPluginFactory::describeInContext(OFX::ImageEffectDescriptor& desc, OF
     log_level_param->appendOption("debug");
     log_level_param->setDefault(2);
     log_level_param->setParent(*advanced_group);
+    log_level_param->setLabel("log level");
 
     advanced_group->setOpen(false);
 
