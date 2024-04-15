@@ -47,9 +47,9 @@ void solver(const int channel,
             sample_flt = std::min<ptype>(sample_flt, 1.f);
             sample_flt = std::max<ptype>(sample_flt, 0.f);
 
-            int sample_int = (int)(sample_flt * (input_depth - 1));
+            const int sample_int = (int)(sample_flt * (input_depth - 1));
 
-            float wij = input_weights[sample_int];
+            const float wij = input_weights[sample_int];
 
             a.at(k, sample_int) = wij;
             a.at(k, input_depth + i) = -wij;
@@ -75,7 +75,7 @@ void solver(const int channel,
         k++;
     }
 
-    bool success = lapack::solve(s.memptr(), a.memptr(), b.memptr(), m, n);
+    const bool success = lapack::solve(s.memptr(), a.memptr(), b.memptr(), m, n);
 
     if (success)
     {
@@ -212,7 +212,7 @@ public:
 
             for (int c = 0; c < CMP_MAX; ++c)
             {
-                float tone = lum_dif * dst[i + c] / lum;
+                const float tone = lum_dif * dst[i + c] / lum;
                 dst[i + c] = tone + (dst[i + c] - tone) * _highlights;
             }
         }
@@ -239,11 +239,11 @@ public:
     {   
         const float aspect = (float)_width / (float)_height;
         
-        int x_points = (int)(sqrt(aspect * _samples));
-        int y_points = _samples / x_points;
+        const int x_points = (int)(sqrt(aspect * _samples));
+        const int y_points = _samples / x_points;
 
-        int step_x = _width / x_points;
-        int step_y = _height / y_points;
+        const int step_x = _width / x_points;
+        const int step_y = _height / y_points;
 
         for (int i = 0, x = step_x / 2; i < x_points; i++, x += step_x)
         {
@@ -298,9 +298,9 @@ public:
     void set_linear_response() { _effect.set_response_linear_size(_input_depth); }
     
 private:
-    int _width;
-    int _height;
-    int _components;
+    int _width = 0;
+    int _height = 0;
+    int _components = 0;
 
     fx::timer _timer;
 
@@ -309,16 +309,16 @@ private:
     std::vector<fx::point> _sample_points;
     std::vector <std::shared_ptr<OFX::Image>> _sources;
 
-    float _exposure;
-    float _gamma;
-    float _highlights;
-    bool _calibrate;
-    bool _show_samples;
-    int _samples;
-    float _smoothness;
-    int _input_depth;
+    float _exposure = 0;
+    float _gamma = 0;
+    float _highlights = 0;
+    bool _calibrate = false;
+    bool _show_samples = false;
+    int _samples = 0;
+    float _smoothness = 0;
+    int _input_depth = 0;
 
-    float _luminance_max;
+    float _luminance_max = 0;
 
     Effect<ptype>& _effect;
 };
