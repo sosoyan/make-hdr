@@ -155,7 +155,7 @@ void Effect<ptype>::set_input_weights(int size)
     {
         _input_weights.resize(size);
 
-        int half_depth = size / 2;
+        const int half_depth = size / 2;
 
         for (int i = 0; i < size; ++i)
             _input_weights[i] = i < half_depth ? i + 1.f : size - i;
