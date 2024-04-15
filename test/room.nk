@@ -1,36 +1,6 @@
-#! C:/Program Files/Nuke15.0v4/nuke-15.0.4.dll -nx
-version 15.0 v4
-define_window_layout_xml {<?xml version="1.0" encoding="UTF-8"?>
-<layout version="1.0">
-    <window x="-1" y="-8" w="2560" h="1377" maximized="1" screen="0">
-        <splitter orientation="1">
-            <split size="40"/>
-            <dock id="" hideTitles="1" activePageId="Toolbar.1">
-                <page id="Toolbar.1"/>
-            </dock>
-            <split size="1897" stretch="1"/>
-            <splitter orientation="2">
-                <split size="890"/>
-                <dock id="" activePageId="Viewer.1">
-                    <page id="Viewer.1"/>
-                </dock>
-                <split size="445"/>
-                <dock id="" activePageId="DAG.1" focus="true">
-                    <page id="DAG.1"/>
-                </dock>
-            </splitter>
-            <split size="615"/>
-            <dock id="" activePageId="Properties.1">
-                <page id="Properties.1"/>
-                <page id="uk.co.thefoundry.backgroundrenderview.1"/>
-            </dock>
-        </splitter>
-    </window>
-</layout>
-}
 Root {
  inputs 0
- name //meganas/dev/make-hdr/test/room.nk
+ name room.nk
  project_directory "\[python \{nuke.script_directory()\}]"
  frame 47
  format "2048 1556 0 0 2048 1556 1 2K_Super_35(full-ap)"
