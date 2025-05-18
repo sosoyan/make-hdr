@@ -1,0 +1,95 @@
+name: Build MakeHDR
+
+on:
+#   push:
+#     branches: [ main ]
+#   pull_request:
+#     branches: [ main ]
+    workflow_dispatch:
+
+jobs:
+#   build-linux:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           submodules: recursive
+#       - name: Install dependencies
+#         run: sudo apt-get update && sudo apt-get install -y cmake
+#       - name: Build and Install
+#         run: |
+#           mkdir build
+#           cd build
+#           cmake .. -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+#           cmake --build . --parallel --target install
+
+#   build-windows:
+#     runs-on: windows-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           submodules: recursive
+#       - name: Configure CMake
+#         run: |
+#           mkdir build
+#           cd build
+#           cmake .. -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+#       - name: Build and Install
+#         run: |
+#           cd build
+#           cmake --build . --parallel --target install
+
+  macos:
+    name: '${{ matrix.os }} ${{ matrix.arch-type }}'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: #arch: [x86_64, arm64]
+          # - os: "macos-latest"
+          #   arch: x86_64
+          #   arch-type: Intel
+          #   build-type: "Release"
+          - os: "macos-latest"
+            arch: arm64
+            arch-type: Apple Silicon
+            build-type: "Release"
+    steps:
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Make Directories
+        run: |
+          mkdir install
+          mkdir build
+          cd build
+
+      - name: Configure MakeHDR
+        run: |
+          run: |
+          cmake --version
+          cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX=../install ..
+
+      - name: Build MakeHDR
+        run: |
+          cmake --build . --parallel
+
+      - name: Install MakeHDR
+        run: |
+          cmake --install .
+  
+      - name: Create Archive of MakeHDR
+        run: |
+          cd install
+          xattr -cr make_hdr.ofx.bundle
+          zip -r ../MakeHDR-${{ matrix.os }}-${{ matrix.arch-type }}-${{ matrix.build-type }}.zip .
+          cd ..
+
+      - name: Upload MakeHDR bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: MakeHDR-${{ matrix.os }}-${{ matrix.arch-type }}-${{ matrix.build-type }}
+          path: MakeHDR-${{ matrix.os }}-${{ matrix.arch-type }}-${{ matrix.build-type }}.zip
+          retention-days: 14
