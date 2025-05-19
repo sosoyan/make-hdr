@@ -1,0 +1,194 @@
+name: Build MakeHDR
+
+on:
+#   push:
+#     branches: [ main ]
+#   pull_request:
+#     branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  
+  linux:
+    name: '${{ matrix.os }} ${{ matrix.arch-type }}'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: "ubuntu-22.04" # ubuntu-latest
+            arch: x86_64
+            arch-type: Intel
+            build-type: "Release"
+    steps:
+
+      # Build with GCC 9 to ensure plugin compatibility with Nuke 14-16+
+      - name: Install GCC 9
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt-get update
+          sudo apt-get install -y gcc-9 g++-9
+
+      - name: Set GCC 9 as default
+        run: |
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90
+          gcc --version
+          g++ --version
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure MakeHDR
+        run: |
+          mkdir build
+          cd build
+          cmake --version
+          cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9 ..
+
+      - name: Build MakeHDR
+        run: |
+          cd build
+          cmake --build . --parallel
+
+      - name: Install MakeHDR
+        run: |
+          cd build
+          cmake --install .
+  
+      - name: Create Archive of MakeHDR
+        run: |
+          cd build
+          zip -r "../MakeHDR-${{ matrix.os }}-${{ matrix.arch }}.zip" make_hdr.ofx.bundle
+          cd ..
+          ls -l
+
+      - name: Upload MakeHDR bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}
+          path: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}.zip
+          retention-days: 14
+          compression-level: 0
+
+  macos:
+    name: '${{ matrix.os }} ${{ matrix.arch-type }}'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: "macos-14"
+            arch: arm64
+            arch-type: Apple Silicon
+            build-type: "Release"
+          - os: "macos-13"
+            arch: x86_64
+            arch-type: Intel
+            build-type: "Release"
+    steps:
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      # Build with Xcode 14 to ensure plugin compatibility with Nuke 14-16+
+      - name: Select Xcode version for Intel
+        if: matrix.arch-type == 'Intel'
+        run: sudo xcode-select -s /Applications/Xcode_14.1.0.app
+
+      - name: Configure MakeHDR for Intel
+        if: matrix.arch == 'x86_64'
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13 -DCMAKE_OSX_ARCHITECTURES=x86_64 ..
+
+      - name: Configure MakeHDR for ARM
+        if: matrix.arch == 'arm64'
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DCMAKE_OSX_ARCHITECTURES=arm64 ..
+
+      - name: Build MakeHDR
+        run: |
+          cd build
+          cmake --build . --parallel
+
+      - name: Install MakeHDR
+        run: |
+          cd build
+          cmake --install .
+  
+      - name: Create Archive of MakeHDR
+        run: |
+          cd build
+          xattr -cr make_hdr.ofx.bundle
+          zip -r "../MakeHDR-${{ matrix.os }}-${{ matrix.arch }}.zip" make_hdr.ofx.bundle
+          cd ..
+          ls -l
+
+      - name: Upload MakeHDR bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}
+          path: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}.zip
+          retention-days: 14
+          compression-level: 0
+
+  windows:
+    name: '${{ matrix.os }} ${{ matrix.arch-type }}'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: "windows-2019"
+            arch-type: Intel
+            arch: "x86_64"
+            build-type: "Release"
+    
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      # Build with Visual Studio 2019 (MSVC 14.2) to ensure plugin compatibility with Nuke 14-16+
+      - name: Configure MakeHDR
+        run: |
+          mkdir build
+          cd build
+          cmake --version
+          cmake -G "Visual Studio 16 2019" -A x64 ..
+
+      - name: Build MakeHDR
+        run: |
+          cd build
+          cmake --build . --parallel --config ${{ matrix.build-type }}
+        
+      - name: Install MakeHDR
+        run: |
+          cd build
+          cmake --install . --config ${{ matrix.build-type }}
+  
+      - name: Install zip using chocolatey
+        run: choco install zip -y
+        shell: powershell
+        
+      - name: Create Archive of MakeHDR
+        run: |
+          cd build
+          zip -r "../MakeHDR-${{ matrix.os }}-${{ matrix.arch }}.zip" make_hdr.ofx.bundle
+          cd..
+
+      - name: Upload MakeHDR bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}
+          path: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}.zip
+          retention-days: 14
+          compression-level: 0
