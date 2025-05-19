@@ -45,6 +45,8 @@ set_target_properties(make_hdr
 
 target_compile_definitions(make_hdr PRIVATE)
 
-install(TARGETS make_hdr DESTINATION ${INSTALL_BIN_PATH})
+#install(TARGETS make_hdr DESTINATION ${INSTALL_BIN_PATH})
+install(FILES $<TARGET_FILE:make_hdr> DESTINATION ${INSTALL_BIN_PATH})
+
 install(FILES ${CMAKE_SOURCE_DIR}/icons/net.sf.openfx.make_hdr.png DESTINATION ${INSTALL_RES_PATH})
 install(FILES ${CMAKE_SOURCE_DIR}/icons/net.sf.openfx.make_hdr.svg DESTINATION ${INSTALL_RES_PATH})
