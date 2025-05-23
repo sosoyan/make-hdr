@@ -31,6 +31,9 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/modules/openfx/Support/Library)
 
 add_library(make_hdr SHARED ${CMAKE_SOURCE_DIR}/source/effect.cpp)
 
+# Require C++14 standard for this target.
+set_target_properties(make_hdr PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES)
+
 target_link_libraries(make_hdr f2c)
 target_link_libraries(make_hdr blas)
 target_link_libraries(make_hdr lapack)
@@ -43,10 +46,18 @@ set_target_properties(make_hdr
 	SUFFIX ".ofx"
 	OUTPUT_NAME "make_hdr")
 
-target_compile_definitions(make_hdr PRIVATE)
+# MSVC/Windows-specific compile options and definitions.
+if (WIN32 AND MSVC)
+    target_compile_options(make_hdr PRIVATE /utf-8)
+    target_compile_definitions(make_hdr PRIVATE NOMINMAX)
+endif()
 
-#install(TARGETS make_hdr DESTINATION ${INSTALL_BIN_PATH})
+# Workaround for constexpr mutex constructor in MSVC 1930+ (Visual Studio 2019+).
+if (MSVC AND MSVC_VERSION GREATER_EQUAL 1930)
+    target_compile_definitions(make_hdr PRIVATE _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
+endif()
+
+# Install the plugin binary and resource files.
 install(FILES $<TARGET_FILE:make_hdr> DESTINATION ${INSTALL_BIN_PATH})
-
 install(FILES ${CMAKE_SOURCE_DIR}/icons/net.sf.openfx.make_hdr.png DESTINATION ${INSTALL_RES_PATH})
 install(FILES ${CMAKE_SOURCE_DIR}/icons/net.sf.openfx.make_hdr.svg DESTINATION ${INSTALL_RES_PATH})

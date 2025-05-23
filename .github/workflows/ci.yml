@@ -150,20 +150,32 @@ jobs:
             arch-type: Intel
             arch: "x86_64"
             build-type: "Release"
-    
+          - os: "windows-2022"
+            arch-type: Intel
+            arch: "x86_64"
+            build-type: "Release"
+
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      
-      # Build with Visual Studio 2019 (MSVC 14.2) to ensure plugin compatibility with Nuke 14-16+
-      - name: Configure MakeHDR
+
+      - name: Configure MakeHDR (VS2019)
+        if: matrix.os == 'windows-2019'
         run: |
           mkdir build
           cd build
           cmake --version
           cmake -G "Visual Studio 16 2019" -A x64 ..
+
+      - name: Configure MakeHDR (VS2022)
+        if: matrix.os == 'windows-2022'
+        run: |
+          mkdir build
+          cd build
+          cmake --version
+          cmake -G "Visual Studio 17 2022" -A x64 ..
 
       - name: Build MakeHDR
         run: |
