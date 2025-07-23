@@ -11,21 +11,17 @@ if (WIN32)
 elseif (APPLE)
 	set(OFX_PLUGIN_PATH "/Library/OFX/Plugins")
 	set(INSTALL_BIN_PATH ${OFX_PLUGIN_PATH}/make_hdr.ofx.bundle/Contents/MacOS)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -include stdio.h")
 
 elseif (UNIX)
 	set(OFX_PLUGIN_PATH "/usr/OFX/Plugins")
 	set(INSTALL_BIN_PATH ${OFX_PLUGIN_PATH}/make_hdr.ofx.bundle/Contents/Linux-x86-64)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 endif()
 
 set(INSTALL_RES_PATH ${OFX_PLUGIN_PATH}/make_hdr.ofx.bundle/Contents/Resources)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-
-if (APPLE)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -include stdio.h")
-elseif (UNIX)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/source)
 include_directories(${CMAKE_SOURCE_DIR}/modules/openfx/include)
