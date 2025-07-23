@@ -12,15 +12,14 @@ MakeHDR is an OpenFX plug-in for merging multiple LDR images into a single HDRI.
 Available at cross platform on Linux, MacOS and Windows
 Works consistent in compositing applications like Nuke, Fusion, Natron. 
 
-## How to Build
+## How to Build and Install
 ```
-git clone https://github.com/Sosoyan/make-hdr.git && cd make-hdr
-git submodule update --init
-mkdir build && cd build
-cmake .. && make install
+git clone --recursive https://github.com/sosoyan/make-hdr.git
+cd make-hdr && mkdir build && cd build
+cmake .. && sudo make install
 ```
 
-## How to Install
+## How to Install manually
 Copy make_hdr.ofx.bundle directory to your system's default OFX_PLUGIN_PATH or where the environment variable is set to.
 - Linux: /usr/OFX/Plugins
 - MacOS: /Library/OFX/Plugins
