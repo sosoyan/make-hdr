@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(make_hdr LANGUAGES CXX)
 
+set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 if (WIN32)
@@ -52,7 +53,7 @@ if (WIN32 AND MSVC)
 
 	# Workaround for constexpr mutex constructor in MSVC 1930+ (Visual Studio 2019+).
 	if (MSVC_VERSION GREATER_EQUAL 1920)
-		target_compile_definitions(nerk PUBLIC _CRT_SECURE_NO_WARNINGS _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
+		target_compile_definitions(make_hdr PUBLIC _CRT_SECURE_NO_WARNINGS _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 	endif()
 
 endif()
