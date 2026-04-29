@@ -62,20 +62,12 @@ jobs:
           cd build
           cmake --install . --prefix .
   
-      - name: Create Archive of MakeHDR
-        run: |
-          cd build
-          zip -r "../MakeHDR-${{ matrix.os }}-${{ matrix.arch }}.zip" make_hdr.ofx.bundle
-          cd ..
-          ls -l
-
       - name: Upload MakeHDR bundle
         uses: actions/upload-artifact@v4
         with:
           name: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}
-          path: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}.zip
+          path: build/make_hdr.ofx.bundle
           retention-days: 14
-          compression-level: 0
 
   macos:
     name: '${{ matrix.os }} ${{ matrix.arch-type }}'
@@ -122,21 +114,17 @@ jobs:
           cd build
           cmake --install . --prefix .
   
-      - name: Create Archive of MakeHDR
+      - name: Fix Permissions
         run: |
           cd build
           xattr -cr make_hdr.ofx.bundle
-          zip -r "../MakeHDR-${{ matrix.os }}-${{ matrix.arch }}.zip" make_hdr.ofx.bundle
-          cd ..
-          ls -l
 
       - name: Upload MakeHDR bundle
         uses: actions/upload-artifact@v4
         with:
           name: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}
-          path: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}.zip
+          path: build/make_hdr.ofx.bundle
           retention-days: 14
-          compression-level: 0
 
   windows:
     name: '${{ matrix.os }} ${{ matrix.arch-type }}'
@@ -173,16 +161,9 @@ jobs:
           cd build
           cmake --install . --prefix . --config ${{ matrix.build-type }}
   
-      - name: Create Archive of MakeHDR
-        run: |
-          cd build
-          Compress-Archive -Path make_hdr.ofx.bundle -DestinationPath "..\MakeHDR-${{ matrix.os }}-${{ matrix.arch }}.zip"
-        shell: powershell
-
       - name: Upload MakeHDR bundle
         uses: actions/upload-artifact@v4
         with:
           name: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}
-          path: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}.zip
+          path: build/make_hdr.ofx.bundle
           retention-days: 14
-          compression-level: 0
