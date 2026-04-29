@@ -187,15 +187,11 @@ jobs:
           cd build
           cmake --install . --config ${{ matrix.build-type }}
   
-      - name: Install zip using chocolatey
-        run: choco install zip -y
-        shell: powershell
-        
       - name: Create Archive of MakeHDR
         run: |
           cd build
-          zip -r "../MakeHDR-${{ matrix.os }}-${{ matrix.arch }}.zip" make_hdr.ofx.bundle
-          cd..
+          Compress-Archive -Path make_hdr.ofx.bundle -DestinationPath "..\MakeHDR-${{ matrix.os }}-${{ matrix.arch }}.zip"
+        shell: powershell
 
       - name: Upload MakeHDR bundle
         uses: actions/upload-artifact@v4
