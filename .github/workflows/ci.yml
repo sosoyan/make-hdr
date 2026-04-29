@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  LOCAL_PLUGIN_PATH: "${{ github.workspace }}/build"
+  LOCAL_PLUGIN_PATH: "${{ github.workspace }}/install"
 
 jobs:
   
@@ -60,13 +60,13 @@ jobs:
       - name: Install MakeHDR
         run: |
           cd build
-          cmake --install . --prefix .
+          cmake --install .
   
       - name: Upload MakeHDR bundle
         uses: actions/upload-artifact@v4
         with:
           name: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}
-          path: build/make_hdr.ofx.bundle
+          path: ${{ env.LOCAL_PLUGIN_PATH }}
           retention-days: 14
 
   macos:
@@ -112,18 +112,17 @@ jobs:
       - name: Install MakeHDR
         run: |
           cd build
-          cmake --install . --prefix .
+          cmake --install .
   
       - name: Fix Permissions
         run: |
-          cd build
-          xattr -cr make_hdr.ofx.bundle
+          xattr -cr ${{ env.LOCAL_PLUGIN_PATH }}/make_hdr.ofx.bundle
 
       - name: Upload MakeHDR bundle
         uses: actions/upload-artifact@v4
         with:
           name: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}
-          path: build/make_hdr.ofx.bundle
+          path: ${{ env.LOCAL_PLUGIN_PATH }}
           retention-days: 14
 
   windows:
@@ -159,11 +158,11 @@ jobs:
       - name: Install MakeHDR
         run: |
           cd build
-          cmake --install . --prefix . --config ${{ matrix.build-type }}
+          cmake --install . --config ${{ matrix.build-type }}
   
       - name: Upload MakeHDR bundle
         uses: actions/upload-artifact@v4
         with:
           name: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}
-          path: build/make_hdr.ofx.bundle
+          path: ${{ env.LOCAL_PLUGIN_PATH }}
           retention-days: 14
