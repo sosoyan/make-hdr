@@ -19,7 +19,7 @@ public:
     {
         for (int i = 0; i < SRC_MAX; ++i)
         {
-            std::string src_name = std::to_string(i + 1);
+            std::string src_name = "src" + std::to_string(i + 1);
 
             _src_clips.push_back(fetchClip(src_name));
             _exp_times.push_back(fetchDoubleParam(src_name));

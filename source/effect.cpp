@@ -250,15 +250,17 @@ void EffectPluginFactory::describeInContext(OFX::ImageEffectDescriptor& desc, OF
     // Setup inputs
     for (int i = 0; i < SRC_MAX; ++i)
     {
-        const std::string src_name = std::to_string(i + 1);
+        const std::string src_name = "src" + std::to_string(i + 1);
 
         OFX::ClipDescriptor* src_clip = desc.defineClip(src_name);
         src_clip->addSupportedComponent(OFX::ePixelComponentRGBA);
+        src_clip->setLabels(std::to_string(i + 1), std::to_string(i + 1), std::to_string(i + 1));
 
         if (i > 0)
             src_clip->setOptional(true);
 
         OFX::DoubleParamDescriptor* exp_times_param = desc.defineDoubleParam(src_name);
+        exp_times_param->setLabels(std::to_string(i + 1), std::to_string(i + 1), std::to_string(i + 1));
         exp_times_param->setDisplayRange(0, 1);
         exp_times_param->setHint("Shutter speed of corresponding source in seconds");
         exp_times_param->setParent(*exposure_times_group);
