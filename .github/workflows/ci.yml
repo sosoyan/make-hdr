@@ -7,6 +7,9 @@ on:
 #     branches: [ main ]
   workflow_dispatch:
 
+env:
+  LOCAL_PLUGIN_PATH: "${{ github.workspace }}/build"
+
 jobs:
   
   linux:
@@ -47,7 +50,7 @@ jobs:
           mkdir build
           cd build
           cmake --version
-          cmake -DOFX_PLUGIN_PATH=. -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9 ..
+          cmake -DOFX_PLUGIN_PATH=${{ env.LOCAL_PLUGIN_PATH }} -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9 ..
 
       - name: Build MakeHDR
         run: |
@@ -105,14 +108,14 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DOFX_PLUGIN_PATH=. -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13 -DCMAKE_OSX_ARCHITECTURES=x86_64 ..
+          cmake -DOFX_PLUGIN_PATH=${{ env.LOCAL_PLUGIN_PATH }} -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13 -DCMAKE_OSX_ARCHITECTURES=x86_64 ..
 
       - name: Configure MakeHDR for ARM
         if: matrix.arch == 'arm64'
         run: |
           mkdir build
           cd build
-          cmake -DOFX_PLUGIN_PATH=. -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DCMAKE_OSX_ARCHITECTURES=arm64 ..
+          cmake -DOFX_PLUGIN_PATH=${{ env.LOCAL_PLUGIN_PATH }} -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DCMAKE_OSX_ARCHITECTURES=arm64 ..
 
       - name: Build MakeHDR
         run: |
@@ -167,7 +170,7 @@ jobs:
           mkdir build
           cd build
           cmake --version
-          cmake -DOFX_PLUGIN_PATH=. -G "Visual Studio 16 2019" -A x64 ..
+          cmake -DOFX_PLUGIN_PATH=${{ env.LOCAL_PLUGIN_PATH }} -G "Visual Studio 16 2019" -A x64 ..
 
       - name: Configure MakeHDR (VS2022)
         if: matrix.os == 'windows-2022'
@@ -175,7 +178,7 @@ jobs:
           mkdir build
           cd build
           cmake --version
-          cmake -DOFX_PLUGIN_PATH=. -G "Visual Studio 17 2022" -A x64 ..
+          cmake -DOFX_PLUGIN_PATH=${{ env.LOCAL_PLUGIN_PATH }} -G "Visual Studio 17 2022" -A x64 ..
 
       - name: Build MakeHDR
         run: |
