@@ -88,7 +88,7 @@ jobs:
             arch: arm64
             arch-type: Apple Silicon
             build-type: "Release"
-          - os: "macos-13"
+          - os: "macos-14"
             arch: x86_64
             arch-type: Intel
             build-type: "Release"
@@ -97,11 +97,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      
-      # Build with Xcode 14 to ensure plugin compatibility with Nuke 14-16+
-      - name: Select Xcode version for Intel
-        if: matrix.arch-type == 'Intel'
-        run: sudo xcode-select -s /Applications/Xcode_14.1.0.app
 
       - name: Configure MakeHDR for Intel
         if: matrix.arch == 'x86_64'
@@ -149,10 +144,6 @@ jobs:
       #fail-fast: false
       matrix:
         include:
-          - os: "windows-2019"
-            arch-type: Intel
-            arch: "x86_64"
-            build-type: "Release"
           - os: "windows-2022"
             arch-type: Intel
             arch: "x86_64"
@@ -163,14 +154,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Configure MakeHDR (VS2019)
-        if: matrix.os == 'windows-2019'
-        run: |
-          mkdir build
-          cd build
-          cmake --version
-          cmake -DOFX_PLUGIN_PATH=${{ env.LOCAL_PLUGIN_PATH }} -G "Visual Studio 16 2019" -A x64 ..
 
       - name: Configure MakeHDR (VS2022)
         if: matrix.os == 'windows-2022'
