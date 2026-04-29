@@ -108,7 +108,7 @@ public:
         {
             if (!_effect.abort())
             {
-                if (_effect.regen_calib())
+                if (_effect.regen_calib() || _effect.input_weights().empty())
                 {
                     _effect.set_input_weights(_input_depth);
 
@@ -200,6 +200,9 @@ public:
 
     virtual void postProcess() 
     {
+        if (_sources.empty())
+            return;
+
         ptype* dst = (ptype*)_dstImg->getPixelData();
 
         for (int i = 0; i < pixel_size(); i += _components)
@@ -208,6 +211,9 @@ public:
         for (int i = 0; i < pixel_size(); i += _components)
         {
             const float lum = luminance(dst + i);
+            if (lum == 0.f || _luminance_max == 0.f)
+                continue;
+
             const float lum_dif = std::log10(1.f + lum) / std::log10(1.f + _luminance_max);
 
             for (int c = 0; c < CMP_MAX; ++c)
