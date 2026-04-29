@@ -108,7 +108,7 @@ public:
         {
             if (!_effect.abort())
             {
-                if (_effect.regen_calib())
+                if (_effect.regen_calib() || _effect.input_weights().empty())
                 {
                     _effect.set_input_weights(_input_depth);
 
