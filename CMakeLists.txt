@@ -35,7 +35,7 @@ include_directories(${CMAKE_SOURCE_DIR}/modules/armadillo/include)
 add_subdirectory(${CMAKE_SOURCE_DIR}/modules/clapack)
 add_subdirectory(${CMAKE_SOURCE_DIR}/modules/openfx/Support/Library)
 
-add_library(make_hdr SHARED ${CMAKE_SOURCE_DIR}/source/effect.cpp)
+add_library(make_hdr MODULE ${CMAKE_SOURCE_DIR}/source/effect.cpp)
 
 target_link_libraries(make_hdr f2c)
 target_link_libraries(make_hdr blas)
