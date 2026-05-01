@@ -11,7 +11,7 @@ env:
   LOCAL_PLUGIN_PATH: "${{ github.workspace }}/install"
 
 jobs:
-  
+
   linux:
     name: '${{ matrix.os }} ${{ matrix.arch-type }}'
     runs-on: ${{ matrix.os }}
@@ -24,13 +24,9 @@ jobs:
             arch-type: Intel
             build-type: "Release"
     steps:
-
-      # Build with GCC 9 to ensure plugin compatibility with Nuke 14-16+
+      # Build with GCC 9 to ensure plugin compatibility with Nuke 14-16+‚
       - name: Install GCC 9
         run: |
-          sudo apt-get update
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
           sudo apt-get update
           sudo apt-get install -y gcc-9 g++-9
 
@@ -44,6 +40,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - uses: ./.github/actions/read-version
+        id: version
 
       - name: Configure MakeHDR
         run: |
@@ -61,11 +60,11 @@ jobs:
         run: |
           cd build
           cmake --install .
-  
+
       - name: Upload MakeHDR bundle
         uses: actions/upload-artifact@v4
         with:
-          name: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}
+          name: MakeHDR-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}
           path: ${{ env.LOCAL_PLUGIN_PATH }}
           retention-days: 14
 
@@ -85,10 +84,12 @@ jobs:
             arch-type: Intel
             build-type: "Release"
     steps:
-
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - uses: ./.github/actions/read-version
+        id: version
 
       - name: Configure MakeHDR for Intel
         if: matrix.arch == 'x86_64'
@@ -121,7 +122,7 @@ jobs:
       - name: Upload MakeHDR bundle
         uses: actions/upload-artifact@v4
         with:
-          name: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}
+          name: MakeHDR-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}
           path: ${{ env.LOCAL_PLUGIN_PATH }}
           retention-days: 14
 
@@ -142,6 +143,9 @@ jobs:
         with:
           submodules: recursive
 
+      - uses: ./.github/actions/read-version
+        id: version
+
       - name: Configure MakeHDR (VS2022)
         if: matrix.os == 'windows-2022'
         run: |
@@ -159,10 +163,10 @@ jobs:
         run: |
           cd build
           cmake --install . --config ${{ matrix.build-type }}
-  
+
       - name: Upload MakeHDR bundle
         uses: actions/upload-artifact@v4
         with:
-          name: MakeHDR-${{ matrix.os }}-${{ matrix.arch }}
+          name: MakeHDR-${{ steps.version.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}
           path: ${{ env.LOCAL_PLUGIN_PATH }}
           retention-days: 14
