@@ -1,0 +1,16 @@
+name: Read Project Version
+description: Extracts VERSION_MAJOR/MINOR/FIX from source/resources.h
+outputs:
+  version:
+    value: ${{ steps.version.outputs.version }}
+runs:
+  using: composite
+  steps:
+    - name: Extract version
+      id: version
+      shell: bash
+      run: |
+        MAJOR=$(grep '#define VERSION_MAJOR' source/resources.h | awk '{print $3}' | tr -d '\r')
+        MINOR=$(grep '#define VERSION_MINOR' source/resources.h | awk '{print $3}' | tr -d '\r')
+        FIX=$(grep '#define VERSION_FIX'     source/resources.h | awk '{print $3}' | tr -d '\r')
+        echo "version=${MAJOR}.${MINOR}.${FIX}" >> $GITHUB_OUTPUT
