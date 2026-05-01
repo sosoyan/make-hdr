@@ -38,7 +38,8 @@ void debevec_solver(const int channel,
             const std::vector<float>& exp_times_log,
             const std::vector<float>& input_weights,
             double* response)
-{   
+{
+
     const int sources_size = (int)sources.size();
     const int samples_size = (int)points.size();
 
@@ -106,6 +107,8 @@ void debevec_solver(const int channel,
         spdlog::error("{}: Solver has failed for channel {}!", fx::label , channel);
 }
 
+/// Implements Mark A. Robertson et al., 1999
+/// "Dynamic Range Improvement Through Multiple Exposures"
 template<typename ptype, typename ImageType>
 void robertson_solver(const int channel,
                       const int input_depth,
@@ -116,8 +119,6 @@ void robertson_solver(const int channel,
                       const std::vector<float>& input_weights,
                       double* response)
 {
-    /// Implements Mark A. Robertson et al., 1999
-    /// "Dynamic Range Improvement Through Multiple Exposures"
 
     const int sources_size = (int)sources.size();
     const int samples_size = (int)points.size();
@@ -128,7 +129,7 @@ void robertson_solver(const int channel,
 
     std::vector<double> E(samples_size, 0.0);
 
-    // Precompute sample integers to avoid fetching pixel data during iterations
+    /// Precompute sample integers to avoid fetching pixel data during iterations
     std::vector<std::vector<int>> sample_ints(samples_size, std::vector<int>(sources_size));
     for (int i = 0; i < samples_size; ++i)
     {
@@ -140,8 +141,8 @@ void robertson_solver(const int channel,
 
     for (int iter = 0; iter < iterations; ++iter)
     {
-        // 1. Estimate irradiance E for each sample
-        // x_j = sum(w(y_ij) * t_i * I(y_ij)) / sum(w(y_ij) * t_i^2)
+        /// 1. Estimate irradiance E for each sample
+        /// x_j = sum(w(y_ij) * t_i * I(y_ij)) / sum(w(y_ij) * t_i^2)
         for (int i = 0; i < samples_size; ++i)
         {
             double sum_num = 0.0;
@@ -160,8 +161,8 @@ void robertson_solver(const int channel,
             E[i] = (sum_den > 0.0) ? (sum_num / sum_den) : 0.0;
         }
 
-        // 2. Update response function I
-        // I(m) = sum(t_i * x_j) / Card(y_ij = m)
+        /// 2. Update response function I
+        /// I(m) = sum(t_i * x_j) / Card(y_ij = m)
         std::vector<double> sum_I_num(input_depth, 0.0);
         std::vector<double> sum_I_den(input_depth, 0.0);
 
@@ -185,7 +186,7 @@ void robertson_solver(const int channel,
                 I[m] = -1.0; // Mark unobserved
         }
 
-        // Interpolate unobserved values in the Log-Domain
+        /// 3. Interpolate unobserved values in the Log-Domain
         int last_valid = -1;
         for (int m = 0; m < input_depth; ++m) {
             if (I[m] >= 0.0) {
@@ -208,12 +209,12 @@ void robertson_solver(const int channel,
             }
         }
 
-        // Enforce strict monotonicity (crucial to prevent color channel inversions)
+        /// 4. Enforce strict monotonicity (crucial to prevent color channel inversions)
         for (int m = 1; m < input_depth; ++m) {
             if (I[m] < I[m - 1]) I[m] = I[m - 1];
         }
 
-        // 3. Normalize to Mid-Value
+        /// 5. Normalize to Mid-Value
         const double mid_val = I[input_depth / 2];
         if (mid_val > 0.0)
         {
@@ -222,7 +223,7 @@ void robertson_solver(const int channel,
         }
     }
 
-    // Output Logarithmic Response exactly like Debevec so processor logic stays identical
+    /// 6. Output Logarithmic Response exactly like Debevec so processor logic stays identical
     for (int m = 0; m < input_depth; ++m)
     {
         if (I[m] <= 0.0)

@@ -116,13 +116,11 @@ public:
                         ? result[c] / weight_sum
                         : fallback_log[c];
                     const float hdr = std::exp(log_hdr);
-                    dst[c] = (ptype)pow(hdr * (float)std::pow(2, _exposure), 1.f / _gamma);
+                    dst[c] = (ptype)pow(hdr, 1.f / _gamma);
                 }
 
-                if(_show_samples)
-                    for (auto point : _sample_points)
-                        if (x == point.x && y == point.y)
-                            dst[fx::ch::g] = FLT_MAX;
+                if(_show_samples && _effect.sample_set().count(fx::point(x, y).key()))
+                    dst[fx::ch::g] = FLT_MAX;
 
                 dst[fx::ch::a] = 1.0f;
             }
@@ -135,16 +133,72 @@ public:
 
         ptype* dst = (ptype*)_dstImg->getPixelData();
 
-        for (int i = 0; i < pixel_size(); i += _components)
-            _luminance_max = std::max(luminance(dst + i), _luminance_max);
-
+        /// Pass 1: scene maximum (always needed for Reinhard) and, when middle gray is enabled, 
+        /// log-average of linear luminance for normalisation.
+        ///   L_avg = exp(mean(log(ε + L_linear_i))) [Reinhard 2002, eq. 1]
+        ///
+        /// dst currently holds hdr^(1/gamma) (gamma-encoded, no exposure).
+        /// For the geometric mean, linear luminance is recovered per channel before weighting:
+        ///   lum_linear = 0.212671*R^gamma + 0.71516*G^gamma + 0.072169*B^gamma
+        double log_sum = 0.0;
+        int pixel_count = 0;
         for (int i = 0; i < pixel_size(); i += _components)
         {
             const float lum = luminance(dst + i);
-            if (lum == 0.f || _luminance_max == 0.f)
+            _luminance_max = std::max(lum, _luminance_max);
+
+            if (_use_middle_gray)
+            {
+                const float r_lin = std::pow(std::max(0.f, dst[i + fx::ch::r]), _gamma);
+                const float g_lin = std::pow(std::max(0.f, dst[i + fx::ch::g]), _gamma);
+                const float b_lin = std::pow(std::max(0.f, dst[i + fx::ch::b]), _gamma);
+                const float lum_lin = 0.212671f * r_lin + 0.71516f * g_lin + 0.072169f * b_lin;
+                if (lum_lin > 0.f)
+                {
+                    log_sum += std::log(1e-6f + lum_lin);
+                    ++pixel_count;
+                }
+            }
+        }
+
+        /// Pre-scaling: exposure only, or combined middle-gray normalisation + exposure.
+        ///
+        /// When middle gray is OFF (backwards-compatible mode):
+        ///   pixel_scale = pow(2^exposure, 1/gamma)
+        ///   result = pow(hdr * 2^exposure, 1/gamma)  -- original formula.
+        ///
+        /// When middle gray is enabled:
+        ///   pixel_scale = pow(middle_gray * 2^exposure / lum_linear_avg, 1/gamma)
+        ///   result = pow(hdr * middle_gray / lum_linear_avg * 2^exposure, 1/gamma)
+        float pixel_scale;
+        if (_use_middle_gray && _middle_gray > 0.f)
+        {
+            const float lum_linear_avg = pixel_count > 0 ? std::exp((float)(log_sum / pixel_count)) : 1.f;
+            pixel_scale = lum_linear_avg > 0.f
+                ? std::pow(_middle_gray * std::pow(2.f, _exposure) / lum_linear_avg, 1.f / _gamma)
+                : 1.f;
+        }
+        else
+        {
+            pixel_scale = std::pow(std::pow(2.f, _exposure), 1.f / _gamma);
+        }
+        const float scaled_lum_max = _luminance_max * pixel_scale;
+        const float log_lum_max = std::log10(1.f + scaled_lum_max);
+
+        /// Pass 2: Reinhard global tone mapping
+        /// highlights blends between fully tone-mapped (0) and linear (1)
+        ///   L_d = log10(1 + L_scaled) / log10(1 + L_max_scaled)  [display luminance]
+        ///   C_d = L_d * C / L  [per-channel, preserves hue]
+        for (int i = 0; i < pixel_size(); i += _components)
+        {
+            for (int c = 0; c < CMP_MAX; ++c)
+                dst[i + c] *= pixel_scale;
+
+            const float lum = luminance(dst + i);
+            if (lum == 0.f || scaled_lum_max == 0.f)
                 continue;
 
-            const float lum_dif = std::log10(1.f + lum) / std::log10(1.f + _luminance_max);
+            const float lum_dif = std::log10(1.f + lum) / log_lum_max;
 
             for (int c = 0; c < CMP_MAX; ++c)
             {
@@ -168,11 +222,15 @@ public:
         _solver_type = _effect.solver_type(time);
         _smoothness = _effect.smoothness(time);
         _input_depth = _effect.input_depth(time);
+        _use_middle_gray = _effect.use_middle_gray(time);
+        _middle_gray = _effect.middle_gray(time);
     }
 
     void calibrate()
     {   
         _effect.set_regen_calib(false);
+        _effect.sample_points().clear();
+        _effect.sample_set().clear();
 
         const float aspect = (float)_width / (float)_height;
         
@@ -189,34 +247,35 @@ public:
             {
                 if (0 <= x && x < _width && 0 <= y && y < _height)
                 {
-                    _sample_points.push_back(fx::point(x, y));
+                    _effect.sample_points().push_back(fx::point(x, y));
+                    _effect.sample_set().insert(fx::point(x, y).key());
                     spdlog::debug("{}: Getting sample pos({}, {})", fx::label, x, y);
                 }
             }
         }
-           
+        
         std::thread threads[CMP_MAX];
 
         for (int c = 0; c < CMP_MAX; ++c)
         {
-            if (_solver_type == 0) // Debevec
+            if (_solver_type == 0)
             {
                 threads[c] = std::thread(debevec_solver<ptype, OFX::Image>, c,
                                                         _input_depth,
                                                         _smoothness,
                                                         _sources,
-                                                        _sample_points,
+                                                        _effect.sample_points(),
                                                         _exp_times_log,
                                                         _effect.input_weights(),
                                                         _effect.response(_input_depth, c));
             }
-            else // Robertson
+            else if (_solver_type == 1)
             {
                 threads[c] = std::thread(robertson_solver<ptype, OFX::Image>, c,
                                                         _input_depth,
                                                         (int)_smoothness,
                                                         _sources,
-                                                        _sample_points,
+                                                        _effect.sample_points(),
                                                         _exp_times,
                                                         _effect.input_weights(),
                                                         _effect.response(_input_depth, c));
@@ -240,11 +299,11 @@ public:
         _effect.response_linear()[0] = _effect.response_linear()[1];
     }
 
-    /// Robertson runs per-channel independently, producing divergent curve shapes
-    /// on sparse linear data. Average them into one shared curve to eliminate tints,
-    /// then smooth to remove kinks from sparsely-sampled bins near highlights.
     void average_robertson_curves()
     {
+        /// Robertson runs per-channel independently, producing divergent curve shapes
+        /// on sparse linear data. Average them into one shared curve to eliminate tints,
+        /// then smooth to remove kinks from sparsely-sampled bins near highlights.
         for (int m = 0; m < _input_depth; ++m)
         {
             double avg = 0.0;
@@ -255,8 +314,8 @@ public:
                 _effect.response(_input_depth, c)[m] = avg;
         }
 
-        // 3 passes of box-filter smoothing approximates a Gaussian kernel,
-        // handling broader plateau-type banding from sparsely-sampled highlight bins.
+        /// 3 passes of box-filter smoothing approximates a Gaussian kernel,
+        /// handling broader plateau-type banding from sparsely-sampled highlight bins.
         const int radius = 4;
         const int passes = 3;
         std::vector<double> smoothed(_input_depth);
@@ -308,8 +367,7 @@ private:
 
     std::vector<float> _exp_times;
     std::vector<float> _exp_times_log;
-    std::vector<fx::point> _sample_points;
-    std::vector <std::shared_ptr<OFX::Image>> _sources;
+    std::vector<std::shared_ptr<OFX::Image>> _sources;
 
     float _exposure = 0;
     float _gamma = 0;
@@ -322,6 +380,8 @@ private:
     int _input_depth = 0;
 
     float _luminance_max = 0;
+    bool _use_middle_gray = false;
+    float _middle_gray = 0;
 
     Effect<ptype>& _effect;
 };

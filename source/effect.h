@@ -9,6 +9,8 @@
 #define effect_h
 
 #include "processor.h"
+#include <unordered_set>
+#include <cstdint>
 
 
 template <class ptype>
@@ -43,6 +45,9 @@ public:
     void set_regen_calib(bool regen_calib) { _regen_calib = regen_calib; };
 
     const std::vector<float>& input_weights() { return _input_weights; }
+
+    std::vector<fx::point>& sample_points() { return _sample_points; }
+    std::unordered_set<int64_t>& sample_set() { return _sample_set; }
     
     void set_input_weights(int size);
 
@@ -56,6 +61,13 @@ public:
     float gamma(const double& time) { return (float)_gamma->getValueAtTime(time); }
     float highlights(const double& time) { return (float)_highlights->getValueAtTime(time); }
     bool calibrate(const double& time) { bool val; _calibrate->getValueAtTime(time, val); return val; }
+    bool use_middle_gray(const double& time) { bool val; _use_middle_gray->getValueAtTime(time, val); return val; }
+    float middle_gray(const double& time)
+    {
+        double r, g, b, a;
+        _middle_gray->getValueAtTime(time, r, g, b, a);
+        return 0.212671f * (float)r + 0.71516f * (float)g + 0.072169f * (float)b;
+    }
     bool show_samples(const double& time) { bool val; _show_samples->getValueAtTime(time, val); return val; }
     int samples(const double& time) { return _samples->getValueAtTime(time); }
     int solver_type(const double& time) { int type; _solver->getValueAtTime(time, type); return type; }
@@ -72,6 +84,8 @@ protected:
     std::vector<float> _input_weights;
     std::vector<double> _response;
     std::vector<double> _response_linear;
+    std::vector<fx::point> _sample_points;
+    std::unordered_set<int64_t> _sample_set;
 
     OFX::Clip* _dst_clip;
     std::vector<OFX::Clip*> _src_clips;
@@ -81,6 +95,8 @@ protected:
     OFX::DoubleParam* _gamma = fetchDoubleParam("gamma");
     OFX::DoubleParam* _highlights = fetchDoubleParam("highlights");
     OFX::BooleanParam* _calibrate = fetchBooleanParam("calibrate");
+    OFX::BooleanParam* _use_middle_gray = fetchBooleanParam("use_middle_gray");
+    OFX::RGBAParam* _middle_gray = fetchRGBAParam("middle_gray");
     OFX::BooleanParam* _show_samples = fetchBooleanParam("show_samples");
     OFX::IntParam* _samples = fetchIntParam("samples");
     OFX::DoubleParam* _smoothness = fetchDoubleParam("smoothness");
