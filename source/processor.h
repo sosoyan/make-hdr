@@ -9,83 +9,11 @@
 #define processor_h
 
 #include "resources.h"
+#include "solver.h"
 
 
 template <class ptype>
 class Effect;
-
-template<typename ptype>
-void solver(const int channel,
-            const int input_depth,
-            const float smoothness,
-            const std::vector<std::shared_ptr<OFX::Image>>& sources,
-            const std::vector<fx::point>& points,
-            const std::vector<float>& exp_times_log,
-            const std::vector<float>& input_weights,
-            double* response)
-{   
-    const int sources_size = (int)sources.size();
-    const int samples_size = (int)points.size();
-
-    const int m = samples_size * sources_size + input_depth + 1;
-    const int n = input_depth + samples_size;
-
-    arma::mat a = arma::mat(m, n).zeros();
-    arma::vec b = arma::vec(m).zeros();
-    arma::vec s = arma::vec(n).zeros();
-
-    int k = 0;
-    for (int i = 0; i < samples_size; ++i)
-    {
-        for (int j = 0; j < sources_size; ++j)
-        {           
-            ptype* sample = (ptype*)sources[j]->getPixelAddress(points[i].x, points[i].y);
-                     
-            float sample_flt = sample == nullptr ? 0 : sample[channel];
-
-            // Clamp 0 to 1
-            sample_flt = std::min<ptype>(sample_flt, 1.f);
-            sample_flt = std::max<ptype>(sample_flt, 0.f);
-
-            const int sample_int = (int)(sample_flt * (input_depth - 1));
-
-            const float wij = input_weights[sample_int];
-
-            a.at(k, sample_int) = wij;
-            a.at(k, input_depth + i) = -wij;
-            b.at(k, 0) = wij * exp_times_log[j];
-            k++;
-        }
-    }
-    
-    // Fix the scaling
-    a.at(k, input_depth / 2) = 1;
-    k++;
-
-    // Smoothness equations
-    const float lambda = smoothness * (input_depth / 256.f);
-
-    for (int i = 0; i < (input_depth - 2); ++i)
-    {
-        float wi = input_weights[i + 1];
-
-        a.at(k, i) = lambda * wi;
-        a.at(k, i + 1) = -2 * lambda * wi;
-        a.at(k, i + 2) = lambda * wi;
-        k++;
-    }
-
-    const bool success = lapack::solve(s.memptr(), a.memptr(), b.memptr(), m, n);
-
-    if (success)
-    {
-        for (int i = 0; i < input_depth; ++i)
-            response[i] = s[i];
-    }
-    else
-        spdlog::error("{}: Solver has faild for channel {}!", fx::label , channel);
-}
-
 
 template <class ptype>
 class Processor : public OFX::ImageProcessor
@@ -104,117 +32,127 @@ public:
 
     virtual void preProcess()
     {
-        if (!_sources.empty())
+        if (_sources.empty())
         {
-            if (!_effect.abort())
-            {
-                if (_effect.regen_calib() || _effect.input_weights().empty())
-                {
-                    _effect.set_input_weights(_input_depth);
-
-                    if (_calibrate)
-                        calibrate();
-                    else
-                        calibrate_linear();
-                }
-                else
-                    spdlog::debug("[{}] calibrate skipped!", fx::label);
-            }
-            else
-                spdlog::debug("[{}] effect calibrate abort!", fx::label);
-        }
-        else
             spdlog::debug("[{}] sources are empty!", fx::label);
+            return;
+        }
+        if (_effect.abort())
+        {
+            spdlog::debug("[{}] effect calibrate abort!", fx::label);
+            return;
+        }
+        if (!_effect.regen_calib() && !_effect.input_weights().empty())
+        {
+            spdlog::debug("[{}] calibrate skipped!", fx::label);
+            return;
+        }
+
+        _effect.set_input_weights(_input_depth);
+        _calibrate ? calibrate() : calibrate_linear();
     }
 
     virtual void multiThreadProcessImages(OfxRectI proc_window)
     {
-        if (!_sources.empty())
+        if (_sources.empty()) return;
+
+
+        for (int y = proc_window.y1; y < proc_window.y2; ++y)
         {
-            for (int y = proc_window.y1; y < proc_window.y2; ++y)
+            if (_effect.abort()) return;
+
+            for (int x = proc_window.x1; x < proc_window.x2; ++x)
             {
-                if (_effect.abort())
-                    return;
+                float weight_sum = 0.f;
+                float response_log[3] = { 0.f, 0.f, 0.f };
+                float result[3] = { 0.f, 0.f, 0.f };
+                float fallback_log[3] = { 0.f, 0.f, 0.f };
+                float min_exp_log = FLT_MAX;
 
-                for (int x = proc_window.x1; x < proc_window.x2; ++x)
+                ptype* dst = (ptype*)_dstImg->getPixelAddress(x, y);
+
+                for (int i = 0; i < _sources.size(); ++i)
                 {
-                    float weight_sum = 0.f;
-                    float response_log[3] = { 0.f, 0.f, 0.f };
-                    float result[3] = { 0.f, 0.f, 0.f };
+                    const ptype* src = (ptype*)_sources[i]->getPixelAddress(x, y);
 
-                    ptype* dst = (ptype*)_dstImg->getPixelAddress(x, y);
+                    if (src == nullptr) return;
 
-                    for (int i = 0; i < _sources.size(); ++i)
-                    {
-                        const ptype* src = (ptype*)_sources[i]->getPixelAddress(x, y);
-
-                        if (src == nullptr)
-                            return;
-
-                        float weight_src = 0.f;
-
-                        for (int c = 0; c < CMP_MAX; ++c)
-                        {
-                            ptype sample = src[c];
-
-                            // Clamp 0 to 1
-                            sample = std::min<ptype>(sample, 1.f);
-                            sample = std::max<ptype>(sample, 0.f);
-
-                            const int src_int = (int)(sample * (_input_depth - 1));
-
-                            weight_src += _effect.input_weights()[src_int];
-                            
-                            if(_calibrate)
-                                response_log[c] = (float)_effect.response(_input_depth, c)[src_int];
-                            else
-                                response_log[c] = (float)_effect.response_linear()[src_int];
-                        }
-
-                        weight_src /= CMP_MAX;
-
-                        for (int c = 0; c < CMP_MAX; ++c)
-                            result[c] += weight_src * (response_log[c] - _exp_times_log[i]);
-
-                        weight_sum += weight_src;
-                    }
-
-                    weight_sum = 1.f / weight_sum;
+                    float weight_src = 0.f;
 
                     for (int c = 0; c < CMP_MAX; ++c)
                     {
-                        const float hdr = std::exp(result[c] * weight_sum) / _sources.size();
-                        dst[c] = (ptype)pow(hdr * (float)std::pow(2, _exposure), 1.f / _gamma);
+                        const ptype sample = std::min<ptype>(std::max<ptype>(src[c], 0.f), 1.f);
+                        const int bin = (int)(sample * (_input_depth - 1));
+                        weight_src += _effect.input_weights()[bin];
+                        response_log[c] = lookup_response(bin, c);
                     }
 
-                    if(_show_samples)
-                        for (auto point : _sample_points)
-                            if (x == point.x && y == point.y)
-                                dst[fx::ch::g] = FLT_MAX;
+                    weight_src /= CMP_MAX;
 
-                    dst[fx::ch::a] = 1.0f;
+                    /// Track the darkest source as fallback for fully-clipped pixels.
+                    /// Use raw unclamped value when > 1.0 (genuine HDR in linear float),
+                    /// otherwise use the response curve at bin 255 (clipped at camera max).
+                    if (_exp_times_log[i] < min_exp_log)
+                    {
+                        min_exp_log = _exp_times_log[i];
+                        for (int c = 0; c < CMP_MAX; ++c)
+                        {
+                            const float raw = (float)src[c];
+                            fallback_log[c] = raw > 1.0f
+                                ? std::log(raw) - _exp_times_log[i]
+                                : response_log[c] - _exp_times_log[i];
+                        }
+                    }
+
+                    for (int c = 0; c < CMP_MAX; ++c)
+                        result[c] += weight_src * (response_log[c] - _exp_times_log[i]);
+
+                    weight_sum += weight_src;
                 }
+
+                for (int c = 0; c < CMP_MAX; ++c)
+                {
+                    const float log_hdr = weight_sum > 0.f
+                        ? result[c] / weight_sum
+                        : fallback_log[c];
+                    const float hdr = std::exp(log_hdr);
+                    dst[c] = (ptype)pow(hdr, 1.f / _gamma);
+                }
+
+                if(_show_samples && _effect.sample_set().count(fx::point(x, y).key()))
+                    dst[fx::ch::g] = FLT_MAX;
+
+                dst[fx::ch::a] = 1.0f;
             }
         }
-    };
+    }
 
     virtual void postProcess() 
     {
-        if (_sources.empty())
-            return;
+        if (_sources.empty()) return;
 
         ptype* dst = (ptype*)_dstImg->getPixelData();
 
         for (int i = 0; i < pixel_size(); i += _components)
-            _luminance_max = max(luminance(dst + i), _luminance_max);
+        {
+            const float lum = luminance(dst + i);
+            _luminance_max = std::max(lum, _luminance_max);
+        }
+
+        const float pixel_scale = std::pow(std::pow(2.f, _exposure), 1.f / _gamma);
+        const float scaled_lum_max = _luminance_max * pixel_scale;
+        const float log_lum_max = std::log10(1.f + scaled_lum_max);
 
         for (int i = 0; i < pixel_size(); i += _components)
         {
+            for (int c = 0; c < CMP_MAX; ++c)
+                dst[i + c] *= pixel_scale;
+
             const float lum = luminance(dst + i);
-            if (lum == 0.f || _luminance_max == 0.f)
+            if (lum == 0.f || scaled_lum_max == 0.f)
                 continue;
 
-            const float lum_dif = std::log10(1.f + lum) / std::log10(1.f + _luminance_max);
+            const float lum_dif = std::log10(1.f + lum) / log_lum_max;
 
             for (int c = 0; c < CMP_MAX; ++c)
             {
@@ -222,8 +160,6 @@ public:
                 dst[i + c] = tone + (dst[i + c] - tone) * _highlights;
             }
         }
-
-        _effect.set_regen_calib(true);
 
         if(!_effect.abort() && !_sources.empty())
             spdlog::info("[{}] {} sources merged in {}ms", fx::label, _sources.size(), _timer.get());
@@ -243,13 +179,17 @@ public:
 
     void calibrate()
     {   
+        _effect.set_regen_calib(false);
+        _effect.sample_points().clear();
+
         const float aspect = (float)_width / (float)_height;
         
-        const int x_points = (int)(sqrt(aspect * _samples));
-        const int y_points = _samples / x_points;
+        const int actual_samples = _samples;
+        const int x_points = std::max(1, (int)(sqrt(aspect * actual_samples)));
+        const int y_points = std::max(1, actual_samples / x_points);
 
-        const int step_x = _width / x_points;
-        const int step_y = _height / y_points;
+        const int step_x = std::max(1, _width / x_points);
+        const int step_y = std::max(1, _height / y_points);
 
         for (int i = 0, x = step_x / 2; i < x_points; i++, x += step_x)
         {
@@ -257,38 +197,45 @@ public:
             {
                 if (0 <= x && x < _width && 0 <= y && y < _height)
                 {
-                    _sample_points.push_back(fx::point(x, y));
+                    _effect.sample_points().push_back(fx::point(x, y));
                     spdlog::debug("{}: Getting sample pos({}, {})", fx::label, x, y);
                 }
             }
         }
-           
-        std::thread* threads = new std::thread[CMP_MAX];
+        
+        std::thread threads[CMP_MAX];
 
         for (int c = 0; c < CMP_MAX; ++c)
         {
-            threads[c] = std::thread(solver<ptype>, c,
+            threads[c] = std::thread(debevec_solver<ptype, OFX::Image>, c,
                                                     _input_depth,
                                                     _smoothness,
                                                     _sources,
-                                                    _sample_points,
+                                                    _effect.sample_points(),
                                                     _exp_times_log,
                                                     _effect.input_weights(),
-                                                    _effect.response(_input_depth, c));                                               
+                                                    _effect.response(_input_depth, c));
         }
 
         for (int c = 0; c < CMP_MAX; ++c)
             threads[c].join();
-
-        delete[] threads;
     }
 
     void calibrate_linear()
     {
+        _effect.set_regen_calib(false);
+
         for (int i = 0; i < _input_depth; ++i)
             _effect.response_linear()[i] = std::log(i * (1.f / _input_depth));
 
         _effect.response_linear()[0] = _effect.response_linear()[1];
+    }
+
+    inline float lookup_response(int bin, int channel) const
+    {
+        return _calibrate
+            ? (float)_effect.response(_input_depth, channel)[bin]
+            : (float)_effect.response_linear()[bin];
     }
 
     inline float luminance(float* rgb)
@@ -312,8 +259,7 @@ private:
 
     std::vector<float> _exp_times;
     std::vector<float> _exp_times_log;
-    std::vector<fx::point> _sample_points;
-    std::vector <std::shared_ptr<OFX::Image>> _sources;
+    std::vector<std::shared_ptr<OFX::Image>> _sources;
 
     float _exposure = 0;
     float _gamma = 0;

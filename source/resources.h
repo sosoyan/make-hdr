@@ -14,19 +14,16 @@
 #include <chrono>
 #include <thread>
 #include <cfloat>
+#include <unordered_set>
+#include <cstdint>
 
 #include "spdlog/spdlog.h"
 
-#define ARMA_DONT_USE_BLAS
-#define ARMA_DONT_USE_LAPACK
 #include "armadillo"
 
 #include "ofxsImageEffect.h"
 #include "ofxsMultiThread.h"
 #include "ofxsProcessing.H"
-
-#undef small // bloody microsoft
-#include "solve.h"
 
 #define VERSION_MAJOR 1
 #define VERSION_MINOR 2
@@ -61,6 +58,8 @@ namespace fx
     
         int x;
         int y;
+
+        int64_t key() const { return (int64_t)x << 32 | (uint32_t)y; }
     };
 
     class timer
