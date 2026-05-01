@@ -4,6 +4,8 @@ project(make_hdr LANGUAGES CXX)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
+option(USE_ACCELERATE "Use macOS Accelerate framework instead of clapack" ON)
+
 if (WIN32)
 	set(OFX_PLUGIN_PATH "C:/Program Files/Common Files/OFX/Plugins" CACHE PATH "OFX Plugin Install Path")
 	set(INSTALL_BIN_PATH ${OFX_PLUGIN_PATH}/make_hdr.ofx.bundle/Contents/Win64)
@@ -32,18 +34,22 @@ include_directories(${CMAKE_SOURCE_DIR}/modules/openfx/Examples/include)
 include_directories(${CMAKE_SOURCE_DIR}/modules/openfx/Support/include)
 include_directories(${CMAKE_SOURCE_DIR}/modules/openfx/Support/Plugins/include)
 include_directories(${CMAKE_SOURCE_DIR}/modules/spdlog/include)
-include_directories(${CMAKE_SOURCE_DIR}/modules/clapack/INCLUDE)
 include_directories(${CMAKE_SOURCE_DIR}/modules/armadillo/include)
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/modules/clapack)
+if (APPLE AND USE_ACCELERATE)
+	find_library(ACCELERATE_FRAMEWORK Accelerate)
+	set(MATH_LIBRARIES ${ACCELERATE_FRAMEWORK})
+else()
+	include_directories(${CMAKE_SOURCE_DIR}/modules/clapack/INCLUDE)
+	add_subdirectory(${CMAKE_SOURCE_DIR}/modules/clapack)
+	set(MATH_LIBRARIES f2c blas lapack)
+endif()
+
 add_subdirectory(${CMAKE_SOURCE_DIR}/modules/openfx/Support/Library)
 
 add_library(make_hdr MODULE ${CMAKE_SOURCE_DIR}/source/effect.cpp)
 
-target_link_libraries(make_hdr f2c)
-target_link_libraries(make_hdr blas)
-target_link_libraries(make_hdr lapack)
-target_link_libraries(make_hdr OfxSupport)
+target_link_libraries(make_hdr ${MATH_LIBRARIES} OfxSupport)
 
 # MSVC/Windows-specific compile options and definitions.
 if (WIN32 AND MSVC)

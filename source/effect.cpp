@@ -4,16 +4,14 @@
 template <class ptype>
 void Effect<ptype>::changedParam(const OFX::InstanceChangedArgs& args, const std::string& param_name)
 {
-    if (param_name == "exposure" ||
-        param_name == "gamma" ||
-        param_name == "highlights" ||
-        param_name == "show_samples" ||
-        param_name == "log_level")
+    if (param_name != "exposure" &&
+        param_name != "gamma" &&
+        param_name != "highlights" &&
+        param_name != "show_samples" &&
+        param_name != "log_level")
     {
-        _regen_calib = false;
-    }
-    else
         _regen_calib = true;
+    }
 }
 
 template <class ptype>
@@ -58,42 +56,41 @@ void Effect<ptype>::process(Processor<ptype>& processor, const OFX::RenderArgume
         {
             OFX::Clip* src_clip = _src_clips[i];
 
-            if (src_clip != nullptr)
+            if (src_clip != nullptr && src_clip->isConnected())
             {
-                std::shared_ptr<OFX::Image> src_image(src_clip->fetchImage(args.time));
                 const float exp_time = (float)_exp_times[i]->getValueAtTime(args.time);
 
-                if (src_image.get() != nullptr)
+                if (exp_time > 0)
                 {
-                    OFX::BitDepthEnum src_bit_depth = src_image->getPixelDepth();
-                    OFX::PixelComponentEnum src_components = src_image->getPixelComponents();
+                    std::shared_ptr<OFX::Image> src_image(src_clip->fetchImage(args.time));
 
-                    if (src_bit_depth == dst_bit_depth && src_components == dst_components)
+                    if (src_image.get() != nullptr)
                     {
-                        if (exp_time > 0)
+                        OFX::BitDepthEnum src_bit_depth = src_image->getPixelDepth();
+                        OFX::PixelComponentEnum src_components = src_image->getPixelComponents();
+
+                        if (src_bit_depth == dst_bit_depth && src_components == dst_components)
                         {
                             if (dst_image->getBounds().x1 == src_image->getBounds().x1 &&
                                 dst_image->getBounds().x2 == src_image->getBounds().x2 &&
                                 dst_image->getBounds().y1 == src_image->getBounds().y1 &&
-                                dst_image->getBounds().x2 == src_image->getBounds().x2)
+                                dst_image->getBounds().y2 == src_image->getBounds().y2)
                             {
                                 processor.add_source(src_image);
                                 processor.add_exp_time(exp_time);
                             }
                             else
-                                spdlog::warn("[{}] source {} bounds does not match the destination skipping!", fx::label, i);
+                                spdlog::warn("[{}] source {} bounds does not match the destination, skipping!", fx::label, i + 1);
                         }
                         else
-                            spdlog::warn("[{}] source {} exposure time is {}, skipping!", fx::label, i, exp_time);
+                            OFX::throwSuiteStatusException(kOfxStatErrUnsupported);
                     }
                     else
-                        OFX::throwSuiteStatusException(kOfxStatErrUnsupported);
+                        spdlog::debug("[{}] source image is empty!", fx::label);
                 }
                 else
-                    spdlog::debug("[{}] source image is empty!", fx::label);
+                    spdlog::warn("[{}] source {} exposure time is not set (= {}), skipping!", fx::label, i + 1, exp_time);
             }
-            else
-                spdlog::debug("[{}] source clip {} is empty!", fx::label, i);
         }
 
         spdlog::debug("[{}] processing frame {}, render window ({}, {}, {}, {})", fx::label,
@@ -155,10 +152,8 @@ void Effect<ptype>::set_input_weights(int size)
     {
         _input_weights.resize(size);
 
-        const int half_depth = size / 2;
-
         for (int i = 0; i < size; ++i)
-            _input_weights[i] = i < half_depth ? i + 1.f : size - i;
+            _input_weights[i] = (float)std::min(i, size - 1 - i);
     }
 }
 
@@ -195,6 +190,7 @@ void EffectPluginFactory::describeInContext(OFX::ImageEffectDescriptor& desc, OF
     OFX::DoubleParamDescriptor* highlights_param = desc.defineDoubleParam("highlights");
     OFX::BooleanParamDescriptor* show_samples_param = desc.defineBooleanParam("show_samples");
     OFX::IntParamDescriptor* samples_param = desc.defineIntParam("samples");
+    OFX::ChoiceParamDescriptor* solver_param = desc.defineChoiceParam("solver");
     OFX::DoubleParamDescriptor* smoothness_param = desc.defineDoubleParam("smoothness");
     OFX::ChoiceParamDescriptor* input_depth_param = desc.defineChoiceParam("input_depth");
     OFX::ChoiceParamDescriptor* log_level_param = desc.defineChoiceParam("log_level");
@@ -229,11 +225,20 @@ void EffectPluginFactory::describeInContext(OFX::ImageEffectDescriptor& desc, OF
     input_depth_param->setLabel("input depth");
 
     samples_param->setDefault(100);
+    samples_param->setRange(1, 100);
     samples_param->setDisplayRange(1, 100);
+    samples_param->setHint("Debevec: number of sample points. Robertson: multiplied by 100 to compensate for sparse bin coverage (e.g. 100 = 10000 samples).");
     samples_param->setParent(*advanced_group);
-
+    solver_param->appendOption("debevec");
+    solver_param->appendOption("robertson");
+    solver_param->setDefault(0);
+    solver_param->setParent(*advanced_group);
+    solver_param->setLabel("solver");
     smoothness_param->setDefault(50);
+    smoothness_param->setRange(1, 100);
     smoothness_param->setDisplayRange(1, 100);
+    smoothness_param->setHint("Debevec: regularization strength. Robertson: number of iterations.");
+    smoothness_param->setLabel("smoothness / iterations");
     smoothness_param->setParent(*advanced_group);
 
     log_level_param->appendOption("off");

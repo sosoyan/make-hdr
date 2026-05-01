@@ -9,8 +9,6 @@
 #define effect_h
 
 #include "processor.h"
-#include <unordered_set>
-#include <cstdint>
 
 
 template <class ptype>
@@ -45,9 +43,6 @@ public:
     void set_regen_calib(bool regen_calib) { _regen_calib = regen_calib; };
 
     const std::vector<float>& input_weights() { return _input_weights; }
-
-    std::vector<fx::point>& sample_points() { return _sample_points; }
-    std::unordered_set<int64_t>& sample_set() { return _sample_set; }
     
     void set_input_weights(int size);
 
@@ -63,6 +58,7 @@ public:
     bool calibrate(const double& time) { bool val; _calibrate->getValueAtTime(time, val); return val; }
     bool show_samples(const double& time) { bool val; _show_samples->getValueAtTime(time, val); return val; }
     int samples(const double& time) { return _samples->getValueAtTime(time); }
+    int solver_type(const double& time) { int type; _solver->getValueAtTime(time, type); return type; }
     float smoothness(const double& time) { return (float)_smoothness->getValueAtTime(time); }
     int input_depth(const double& time) { int depth; _input_depth->getValueAtTime(time, depth); return _input_depths[depth]; }
     int log_level(const double& time) { int level; _log_level->getValueAtTime(time, level); return level; }
@@ -76,8 +72,6 @@ protected:
     std::vector<float> _input_weights;
     std::vector<double> _response;
     std::vector<double> _response_linear;
-    std::vector<fx::point> _sample_points;
-    std::unordered_set<int64_t> _sample_set;
 
     OFX::Clip* _dst_clip;
     std::vector<OFX::Clip*> _src_clips;
@@ -90,6 +84,7 @@ protected:
     OFX::BooleanParam* _show_samples = fetchBooleanParam("show_samples");
     OFX::IntParam* _samples = fetchIntParam("samples");
     OFX::DoubleParam* _smoothness = fetchDoubleParam("smoothness");
+    OFX::ChoiceParam* _solver = fetchChoiceParam("solver");
     OFX::ChoiceParam* _input_depth = fetchChoiceParam("input_depth");
     OFX::ChoiceParam* _log_level = fetchChoiceParam("log_level");   
 };
