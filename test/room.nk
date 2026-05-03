@@ -130,22 +130,22 @@ OFXnet.sf.openfx.make_hdr_v1 {
  inputs 10
  "exposure times" 1
  calibrate true
- 1 0.06666666667
- 2 0.03333333333
- 3 0.01666666667
- 4 0.008
- 5 0.004
- 6 0.002
- 7 0.001
- 8 0.0005
- 9 0.00025
- 10 0.000125
- 11 0
- 12 0
- 13 0
- 14 0
- 15 0
- 16 0
+ src1 0.06666666667
+ src2 0.03333333333
+ src3 0.01666666667
+ src4 0.008
+ src5 0.004
+ src6 0.002
+ src7 0.001
+ src8 0.0005
+ src9 0.00025
+ src10 0.000125
+ src11 0
+ src12 0
+ src13 0
+ src14 0
+ src15 0
+ src16 0
  "tone mapping" 1
  exposure 0
  gamma 1
