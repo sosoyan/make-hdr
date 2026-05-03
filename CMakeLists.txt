@@ -4,7 +4,7 @@ project(make_hdr LANGUAGES CXX)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
-option(USE_ACCELERATE "Use macOS Accelerate framework instead of clapack" ON)
+option(USE_ACCELERATE "Use macOS Accelerate framework instead of clapack" OFF)
 
 if (WIN32)
 	set(OFX_PLUGIN_PATH "C:/Program Files/Common Files/OFX/Plugins" CACHE PATH "OFX Plugin Install Path")
@@ -48,6 +48,11 @@ endif()
 add_subdirectory(${CMAKE_SOURCE_DIR}/modules/openfx/Support/Library)
 
 add_library(make_hdr MODULE ${CMAKE_SOURCE_DIR}/source/effect.cpp)
+
+if (APPLE AND NOT USE_ACCELERATE)
+    # Bundled clapack uses f2c C ABI: no Fortran hidden args, long BLAS/LAPACK integers.
+    target_compile_definitions(make_hdr PRIVATE ARMA_DONT_USE_FORTRAN_HIDDEN_ARGS ARMA_BLAS_LONG)
+endif()
 
 target_link_libraries(make_hdr ${MATH_LIBRARIES} OfxSupport)
 
