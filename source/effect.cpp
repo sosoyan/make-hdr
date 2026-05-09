@@ -222,7 +222,6 @@ void EffectPluginFactory::describeInContext(OFX::ImageEffectDescriptor& desc, OF
     middle_gray_param->setDefault(0.18, 0.18, 0.18, 1.0);
     middle_gray_param->setLabel("middle gray");
     middle_gray_param->setHint("Pick the reference gray patch from the scene (e.g. a color checker). The plugin scales the merged image so the luminance of the picked color matches the scene average.");
-    middle_gray_param->setEnabled(false);
     middle_gray_param->setParent(*tone_mapping_group);
 
     exposure_param->setDefault(0);
