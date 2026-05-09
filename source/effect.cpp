@@ -195,10 +195,10 @@ void EffectPluginFactory::describeInContext(OFX::ImageEffectDescriptor& desc, OF
 
     OFX::BooleanParamDescriptor* calibrate_param = desc.defineBooleanParam("calibrate");
     OFX::BooleanParamDescriptor* use_middle_gray_param = desc.defineBooleanParam("use_middle_gray");
+    OFX::RGBAParamDescriptor* middle_gray_param = desc.defineRGBAParam("middle_gray");
     OFX::DoubleParamDescriptor* exposure_param = desc.defineDoubleParam("exposure");
     OFX::DoubleParamDescriptor* gamma_param = desc.defineDoubleParam("gamma");
     OFX::DoubleParamDescriptor* highlights_param = desc.defineDoubleParam("highlights");
-    OFX::RGBAParamDescriptor* middle_gray_param = desc.defineRGBAParam("middle_gray");
     OFX::BooleanParamDescriptor* show_samples_param = desc.defineBooleanParam("show_samples");
     OFX::IntParamDescriptor* samples_param = desc.defineIntParam("samples");
     OFX::ChoiceParamDescriptor* solver_param = desc.defineChoiceParam("solver");
@@ -219,6 +219,12 @@ void EffectPluginFactory::describeInContext(OFX::ImageEffectDescriptor& desc, OF
     use_middle_gray_param->setHint("Enable middle gray normalisation. When on, the merged image is scaled so its geometric mean luminance matches the target middle gray value.");
     use_middle_gray_param->setParent(*tone_mapping_group);
 
+    middle_gray_param->setDefault(0.18, 0.18, 0.18, 1.0);
+    middle_gray_param->setLabel("middle gray");
+    middle_gray_param->setHint("Pick the reference gray patch from the scene (e.g. a color checker). The plugin scales the merged image so the luminance of the picked color matches the scene average.");
+    middle_gray_param->setEnabled(false);
+    middle_gray_param->setParent(*tone_mapping_group);
+
     exposure_param->setDefault(0);
     exposure_param->setDisplayRange(-16, 16);
     exposure_param->setHint("Global exposure adjustment in stops applied to the merged HDR image before tone mapping.");
@@ -233,12 +239,6 @@ void EffectPluginFactory::describeInContext(OFX::ImageEffectDescriptor& desc, OF
     highlights_param->setDisplayRange(0, 1);
     highlights_param->setHint("Blends between fully tone-mapped (0) and linear (1) output. Lower values compress highlights more aggressively.");
     highlights_param->setParent(*tone_mapping_group);
-
-    middle_gray_param->setDefault(0.18, 0.18, 0.18, 1.0);
-    middle_gray_param->setLabel("middle gray");
-    middle_gray_param->setHint("Pick the reference gray patch from the scene (e.g. a color checker). The plugin scales the merged image so the luminance of the picked color matches the scene average.");
-    middle_gray_param->setEnabled(false);
-    middle_gray_param->setParent(*tone_mapping_group);
 
     show_samples_param->setDefault(false);
     show_samples_param->setParent(*advanced_group);
