@@ -47,7 +47,13 @@ endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/modules/openfx/Support/Library)
 
-add_library(make_hdr MODULE ${CMAKE_SOURCE_DIR}/source/effect.cpp)
+add_library(make_hdr MODULE 
+	${CMAKE_SOURCE_DIR}/source/resources.h
+	${CMAKE_SOURCE_DIR}/source/processor.h
+	${CMAKE_SOURCE_DIR}/source/solver.h
+	${CMAKE_SOURCE_DIR}/source/effect.h
+	${CMAKE_SOURCE_DIR}/source/effect.cpp
+	)
 
 if (APPLE AND NOT USE_ACCELERATE)
     # Bundled clapack uses f2c C ABI: no Fortran hidden args, long BLAS/LAPACK integers.
