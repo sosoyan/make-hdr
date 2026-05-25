@@ -11,11 +11,14 @@
 #include "resources.h"
 
 
+namespace makehdr
+{
+
 /// Extracts the pixel value for a given point and channel, 
 /// returning an integer in the range [0, input_depth-1].
 template<typename ptype, typename ImageType>
 inline int extract_pixel_index(const std::shared_ptr<ImageType>& source, 
-            const fx::point& point, 
+            const makehdr::point& point, 
             const int channel, 
             const int input_depth)
 {
@@ -34,7 +37,7 @@ void debevec_solver(const int channel,
             const int input_depth,
             const float smoothness,
             const std::vector<std::shared_ptr<ImageType>>& sources,
-            const std::vector<fx::point>& points,
+            const std::vector<makehdr::point>& points,
             const std::vector<float>& exp_times_log,
             const std::vector<float>& input_weights,
             double* response)
@@ -104,7 +107,7 @@ void debevec_solver(const int channel,
             response[i] = s[i];
     }
     else
-        spdlog::error("{}: Solver has failed for channel {}!", fx::label , channel);
+        spdlog::error("{}: Solver has failed for channel {}!", makehdr::label , channel);
 }
 
 /// Implements Mark A. Robertson et al., 1999
@@ -114,7 +117,7 @@ void robertson_solver(const int channel,
                       const int input_depth,
                       const int iterations,
                       const std::vector<std::shared_ptr<ImageType>>& sources,
-                      const std::vector<fx::point>& points,
+                      const std::vector<makehdr::point>& points,
                       const std::vector<float>& exp_times,
                       const std::vector<float>& input_weights,
                       double* response)
@@ -232,5 +235,7 @@ void robertson_solver(const int channel,
             response[m] = std::log(I[m]);
     }
 }
+
+} // namespace makehdr
 
 #endif

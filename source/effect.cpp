@@ -46,7 +46,7 @@ void Effect<ptype>::render(const OFX::RenderArguments& args)
         }
     }
     else
-        spdlog::error("[{}] destination must have RGBA components!", fx::label);
+        spdlog::error("[{}] destination must have RGBA components!", makehdr::label);
 }
 
 template <class ptype>
@@ -89,20 +89,20 @@ void Effect<ptype>::process(Processor<ptype>& processor, const OFX::RenderArgume
                                 processor.add_exp_time(exp_time);
                             }
                             else
-                                spdlog::warn("[{}] source {} bounds does not match the destination, skipping!", fx::label, i + 1);
+                                spdlog::warn("[{}] source {} bounds does not match the destination, skipping!", makehdr::label, i + 1);
                         }
                         else
                             OFX::throwSuiteStatusException(kOfxStatErrUnsupported);
                     }
                     else
-                        spdlog::debug("[{}] source image is empty!", fx::label);
+                        spdlog::debug("[{}] source image is empty!", makehdr::label);
                 }
                 else
-                    spdlog::warn("[{}] source {} exposure time is not set (= {}), skipping!", fx::label, i + 1, exp_time);
+                    spdlog::warn("[{}] source {} exposure time is not set (= {}), skipping!", makehdr::label, i + 1, exp_time);
             }
         }
 
-        spdlog::debug("[{}] processing frame {}, render window ({}, {}, {}, {})", fx::label,
+        spdlog::debug("[{}] processing frame {}, render window ({}, {}, {}, {})", makehdr::label,
             args.time,
             args.renderWindow.x1,
             args.renderWindow.x2,
@@ -118,7 +118,7 @@ void Effect<ptype>::process(Processor<ptype>& processor, const OFX::RenderArgume
         processor.process();
     }
     else
-        spdlog::error("[{}] destination image is empty!", fx::label);
+        spdlog::error("[{}] destination image is empty!", makehdr::label);
 }
 
 template<class ptype>
@@ -168,9 +168,9 @@ void Effect<ptype>::set_input_weights(int size)
 
 void EffectPluginFactory::describe(OFX::ImageEffectDescriptor& desc)
 {
-    desc.setLabels(fx::label, fx::label, fx::label);
+    desc.setLabels(makehdr::label, makehdr::label, makehdr::label);
     desc.setVersion(VERSION_MAJOR, VERSION_MINOR, VERSION_FIX, 0, "");
-    desc.setPluginDescription(fx::description);
+    desc.setPluginDescription(makehdr::description);
     desc.setPluginGrouping("OFX");
 
     desc.addSupportedContext(OFX::eContextFilter);

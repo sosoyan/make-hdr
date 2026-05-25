@@ -33,7 +33,7 @@
 #define SRC_MAX 16
 
 
-namespace fx
+namespace makehdr
 {
     const std::string label = "MakeHDR";
     const std::string version = std::to_string(VERSION_MAJOR) + "." + 
@@ -43,7 +43,7 @@ namespace fx
     const std::string description = label + " v" + version + 
         " developed by Vahan Sosoyan";
 
-    enum ch
+    enum channel
     {
         r, g, b, a
     };

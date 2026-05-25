@@ -34,7 +34,7 @@ public:
     {
     }
 
-    virtual void changedParam(const OFX::InstanceChangedArgs& args, const std::string& paramName);
+    virtual void changedParam(const OFX::InstanceChangedArgs& args, const std::string& param_name);
     virtual void render(const OFX::RenderArguments& args);
 
     void process(Processor<ptype>& processor, const OFX::RenderArguments& args);
@@ -46,7 +46,7 @@ public:
 
     const std::vector<float>& input_weights() { return _input_weights; }
 
-    std::vector<fx::point>& sample_points() { return _sample_points; }
+    std::vector<makehdr::point>& sample_points() { return _sample_points; }
     std::unordered_set<int64_t>& sample_set() { return _sample_set; }
     
     void set_input_weights(int size);
@@ -76,7 +76,7 @@ public:
     int log_level(const double& time) { int level; _log_level->getValueAtTime(time, level); return level; }
 
 protected:
-    fx::timer _timer;
+    makehdr::timer _timer;
 
     bool _regen_calib = true;
     int _input_depths[3] = { 256, 1024, 4096 };
@@ -84,7 +84,7 @@ protected:
     std::vector<float> _input_weights;
     std::vector<double> _response;
     std::vector<double> _response_linear;
-    std::vector<fx::point> _sample_points;
+    std::vector<makehdr::point> _sample_points;
     std::unordered_set<int64_t> _sample_set;
 
     OFX::Clip* _dst_clip;
