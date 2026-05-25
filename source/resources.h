@@ -17,13 +17,7 @@
 #include <unordered_set>
 #include <cstdint>
 
-#include "spdlog/spdlog.h"
-
 #include "armadillo"
-
-#include "ofxsImageEffect.h"
-#include "ofxsMultiThread.h"
-#include "ofxsProcessing.H"
 
 #define VERSION_MAJOR 1
 #define VERSION_MINOR 4

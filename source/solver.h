@@ -33,7 +33,7 @@ inline int extract_pixel_index(const std::shared_ptr<ImageType>& source,
 /// Implements Paul E. Debevec & Jitendra Malik, 1997
 /// "Recovering High Dynamic Range Radiance Maps from Photographs"
 template<typename ptype, typename ImageType>
-void debevec_solver(const int channel,
+bool debevec_solver(const int channel,
             const int input_depth,
             const float smoothness,
             const std::vector<std::shared_ptr<ImageType>>& sources,
@@ -106,14 +106,14 @@ void debevec_solver(const int channel,
         for (int i = 0; i < input_depth; ++i)
             response[i] = s[i];
     }
-    else
-        spdlog::error("{}: Solver has failed for channel {}!", makehdr::label , channel);
+
+    return success;
 }
 
 /// Implements Mark A. Robertson et al., 1999
 /// "Dynamic Range Improvement Through Multiple Exposures"
 template<typename ptype, typename ImageType>
-void robertson_solver(const int channel,
+bool robertson_solver(const int channel,
                       const int input_depth,
                       const int iterations,
                       const std::vector<std::shared_ptr<ImageType>>& sources,
@@ -142,6 +142,7 @@ void robertson_solver(const int channel,
         }
     }
 
+    int last_valid = -1;
     for (int iter = 0; iter < iterations; ++iter)
     {
         /// 1. Estimate irradiance E for each sample
@@ -190,7 +191,7 @@ void robertson_solver(const int channel,
         }
 
         /// 3. Interpolate unobserved values in the Log-Domain
-        int last_valid = -1;
+        last_valid = -1;
         for (int m = 0; m < input_depth; ++m) {
             if (I[m] >= 0.0) {
                 if (last_valid == -1) {
@@ -212,6 +213,9 @@ void robertson_solver(const int channel,
             }
         }
 
+        /// Degenerate: no bin observed — skip monotonicity, normalisation and remaining iterations
+        if (last_valid == -1) break;
+
         /// 4. Enforce strict monotonicity (crucial to prevent color channel inversions)
         for (int m = 1; m < input_depth; ++m) {
             if (I[m] < I[m - 1]) I[m] = I[m - 1];
@@ -226,14 +230,22 @@ void robertson_solver(const int channel,
         }
     }
 
+    /// Degenerate output: no bin was ever observed (e.g. all-black or fully-clipped inputs).
+    const bool success = (last_valid != -1);
+
     /// 6. Output Logarithmic Response exactly like Debevec so processor logic stays identical
-    for (int m = 0; m < input_depth; ++m)
+    if (success)
     {
-        if (I[m] <= 0.0)
-            response[m] = std::log(1e-6); 
-        else
-            response[m] = std::log(I[m]);
+        for (int m = 0; m < input_depth; ++m)
+        {
+            if (I[m] <= 0.0)
+                response[m] = std::log(1e-6); 
+            else
+                response[m] = std::log(I[m]);
+        }
     }
+
+    return success;
 }
 
 } // namespace makehdr

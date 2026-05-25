@@ -8,9 +8,8 @@
 #ifndef effect_h
 #define effect_h
 
+#include "resources.h"
 #include "processor.h"
-#include <unordered_set>
-#include <cstdint>
 
 
 template <class ptype>

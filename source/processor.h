@@ -11,6 +11,12 @@
 #include "resources.h"
 #include "solver.h"
 
+#include "ofxsImageEffect.h"
+#include "ofxsMultiThread.h"
+#include "ofxsProcessing.H"
+
+#include "spdlog/spdlog.h"
+
 
 template <class ptype>
 class Effect;
@@ -260,25 +266,37 @@ public:
         {
             if (_solver_type == 0)
             {
-                threads[c] = std::thread(makehdr::debevec_solver<ptype, OFX::Image>, c,
-                                                        _input_depth,
-                                                        _smoothness,
-                                                        _sources,
-                                                        _effect.sample_points(),
-                                                        _exp_times_log,
-                                                        _effect.input_weights(),
-                                                        _effect.response(_input_depth, c));
+                threads[c] = std::thread([this, c]() {
+                    bool success = makehdr::debevec_solver<ptype, OFX::Image>(c,
+                                                            _input_depth,
+                                                            _smoothness,
+                                                            _sources,
+                                                            _effect.sample_points(),
+                                                            _exp_times_log,
+                                                            _effect.input_weights(),
+                                                            _effect.response(_input_depth, c));
+                    if (!success)
+                        spdlog::error("{}: Debevec calibration failed on {} channel — "
+                                      "check exposure spread and sample count",
+                                      makehdr::label, "RGB"[c]);
+                });
             }
             else if (_solver_type == 1)
             {
-                threads[c] = std::thread(makehdr::robertson_solver<ptype, OFX::Image>, c,
-                                                        _input_depth,
-                                                        (int)_smoothness,
-                                                        _sources,
-                                                        _effect.sample_points(),
-                                                        _exp_times,
-                                                        _effect.input_weights(),
-                                                        _effect.response(_input_depth, c));
+                threads[c] = std::thread([this, c]() {
+                    bool success = makehdr::robertson_solver<ptype, OFX::Image>(c,
+                                                            _input_depth,
+                                                            (int)_smoothness,
+                                                            _sources,
+                                                            _effect.sample_points(),
+                                                            _exp_times,
+                                                            _effect.input_weights(),
+                                                            _effect.response(_input_depth, c));
+                    if (!success)
+                        spdlog::error("{}: Robertson calibration failed on {} channel — "
+                                      "no sample points could be generated",
+                                      makehdr::label, "RGB"[c]);
+                });
             }
         }
 
