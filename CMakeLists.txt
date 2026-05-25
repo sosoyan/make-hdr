@@ -8,25 +8,25 @@ option(USE_ACCELERATE "Use macOS Accelerate framework instead of clapack" OFF)
 
 if (WIN32)
 	set(OFX_PLUGIN_PATH "C:/Program Files/Common Files/OFX/Plugins" CACHE PATH "OFX Plugin Install Path")
-	set(INSTALL_BIN_PATH ${OFX_PLUGIN_PATH}/make_hdr.ofx.bundle/Contents/Win64)
+	set(INSTALL_BIN_PATH ${OFX_PLUGIN_PATH}/MakeHDR.ofx.bundle/Contents/Win64)
 	if(MSVC)
 		add_compile_options(/MP)
 	endif()
 
 elseif (APPLE)
 	set(OFX_PLUGIN_PATH "/Library/OFX/Plugins" CACHE PATH "OFX Plugin Install Path")
-	set(INSTALL_BIN_PATH ${OFX_PLUGIN_PATH}/make_hdr.ofx.bundle/Contents/MacOS)
+	set(INSTALL_BIN_PATH ${OFX_PLUGIN_PATH}/MakeHDR.ofx.bundle/Contents/MacOS)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -include stdio.h")
 
 elseif (UNIX)
 	set(OFX_PLUGIN_PATH "/usr/OFX/Plugins" CACHE PATH "OFX Plugin Install Path")
-	set(INSTALL_BIN_PATH ${OFX_PLUGIN_PATH}/make_hdr.ofx.bundle/Contents/Linux-x86-64)
+	set(INSTALL_BIN_PATH ${OFX_PLUGIN_PATH}/MakeHDR.ofx.bundle/Contents/Linux-x86-64)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 endif()
 
-set(INSTALL_RES_PATH ${OFX_PLUGIN_PATH}/make_hdr.ofx.bundle/Contents/Resources)
+set(INSTALL_RES_PATH ${OFX_PLUGIN_PATH}/MakeHDR.ofx.bundle/Contents/Resources)
 
 include_directories(${CMAKE_SOURCE_DIR}/source)
 include_directories(${CMAKE_SOURCE_DIR}/modules/openfx/include)
@@ -81,7 +81,7 @@ set_target_properties(make_hdr
 	CXX_STANDARD_REQUIRED YES
 	PREFIX ""
 	SUFFIX ".ofx"
-	OUTPUT_NAME "make_hdr")
+	OUTPUT_NAME "MakeHDR")
 
 find_package(Nuke)
 

@@ -117,7 +117,7 @@ jobs:
   
       - name: Fix Permissions
         run: |
-          xattr -cr ${{ env.LOCAL_PLUGIN_PATH }}/make_hdr.ofx.bundle
+          xattr -cr ${{ env.LOCAL_PLUGIN_PATH }}/MakeHDR.ofx.bundle
 
       - name: Upload MakeHDR bundle
         uses: actions/upload-artifact@v4
