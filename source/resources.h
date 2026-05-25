@@ -53,7 +53,7 @@ namespace makehdr
         int x;
         int y;
 
-        int64_t key() const { return (int64_t)x << 32 | (uint32_t)y; }
+        int64_t key() const { return static_cast<int64_t>(x) << 32 | static_cast<uint32_t>(y); }
     };
 
     class timer

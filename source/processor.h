@@ -75,11 +75,11 @@ public:
                 float fallback_log[3] = { 0.f, 0.f, 0.f };
                 float min_exp_log = FLT_MAX;
 
-                ptype* dst = (ptype*)_dstImg->getPixelAddress(x, y);
+                ptype* dst = static_cast<ptype*>(_dstImg->getPixelAddress(x, y));
 
-                for (int i = 0; i < _sources.size(); ++i)
+                for (int i = 0; i < static_cast<int>(_sources.size()); ++i)
                 {
-                    const ptype* src = (ptype*)_sources[i]->getPixelAddress(x, y);
+                    const ptype* src = static_cast<ptype*>(_sources[i]->getPixelAddress(x, y));
 
                     if (src == nullptr) return;
 
@@ -88,7 +88,7 @@ public:
                     for (int c = 0; c < CMP_MAX; ++c)
                     {
                         const ptype sample = std::min<ptype>(std::max<ptype>(src[c], 0.f), 1.f);
-                        const int bin = (int)(sample * (_input_depth - 1));
+                        const int bin = static_cast<int>(sample * (_input_depth - 1));
                         weight_src += _effect.input_weights()[bin];
                         response_log[c] = lookup_response(bin, c);
                     }
@@ -103,7 +103,7 @@ public:
                         min_exp_log = _exp_times_log[i];
                         for (int c = 0; c < CMP_MAX; ++c)
                         {
-                            const float raw = (float)src[c];
+                            const float raw = static_cast<float>(src[c]);
                             fallback_log[c] = raw > 1.0f
                                 ? std::log(raw) - _exp_times_log[i]
                                 : response_log[c] - _exp_times_log[i];
@@ -122,7 +122,7 @@ public:
                         ? result[c] / weight_sum
                         : fallback_log[c];
                     const float hdr = std::exp(log_hdr);
-                    dst[c] = (ptype)pow(hdr, 1.f / _gamma);
+                    dst[c] = static_cast<ptype>(std::pow(hdr, 1.f / _gamma));
                 }
 
                 if(_show_samples && _effect.sample_set().count(makehdr::point(x, y).key()))
@@ -137,7 +137,7 @@ public:
     {
         if (_sources.empty()) return;
 
-        ptype* dst = (ptype*)_dstImg->getPixelData();
+        ptype* dst = static_cast<ptype*>(_dstImg->getPixelData());
 
         /// Pass 1: scene maximum (always needed for Reinhard) and, when middle gray is enabled, 
         /// log-average of linear luminance for normalisation.
@@ -179,7 +179,7 @@ public:
         float pixel_scale;
         if (_use_middle_gray && _middle_gray > 0.f)
         {
-            const float lum_linear_avg = pixel_count > 0 ? std::exp((float)(log_sum / pixel_count)) : 1.f;
+            const float lum_linear_avg = pixel_count > 0 ? std::exp(static_cast<float>(log_sum / pixel_count)) : 1.f;
             pixel_scale = lum_linear_avg > 0.f
                 ? std::pow(_middle_gray * std::pow(2.f, _exposure) / lum_linear_avg, 1.f / _gamma)
                 : 1.f;
@@ -238,10 +238,10 @@ public:
         _effect.sample_points().clear();
         _effect.sample_set().clear();
 
-        const float aspect = (float)_width / (float)_height;
+        const float aspect = static_cast<float>(_width) / static_cast<float>(_height);
         
         const int actual_samples = (_solver_type == 0) ? _samples : _samples * 100;
-        const int x_points = std::max(1, (int)(sqrt(aspect * actual_samples)));
+        const int x_points = std::max(1, static_cast<int>(std::sqrt(aspect * actual_samples)));
         const int y_points = std::max(1, actual_samples / x_points);
 
         const int step_x = std::max(1, _width / x_points);
@@ -286,7 +286,7 @@ public:
                 threads[c] = std::thread([this, c]() {
                     bool success = makehdr::robertson_solver<ptype, OFX::Image>(c,
                                                             _input_depth,
-                                                            (int)_smoothness,
+                                                            static_cast<int>(_smoothness),
                                                             _sources,
                                                             _effect.sample_points(),
                                                             _exp_times,
@@ -360,8 +360,8 @@ public:
     inline float lookup_response(int bin, int channel) const
     {
         return _calibrate
-            ? (float)_effect.response(_input_depth, channel)[bin]
-            : (float)_effect.response_linear()[bin];
+            ? static_cast<float>(_effect.response(_input_depth, channel)[bin])
+            : static_cast<float>(_effect.response_linear()[bin]);
     }
 
     inline float luminance(float* rgb)

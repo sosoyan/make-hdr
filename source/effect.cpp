@@ -67,7 +67,7 @@ void Effect<ptype>::process(Processor<ptype>& processor, const OFX::RenderArgume
 
             if (src_clip != nullptr && src_clip->isConnected())
             {
-                const float exp_time = (float)_exp_times[i]->getValueAtTime(args.time);
+                const float exp_time = static_cast<float>(_exp_times[i]->getValueAtTime(args.time));
 
                 if (exp_time > 0)
                 {
@@ -162,7 +162,7 @@ void Effect<ptype>::set_input_weights(int size)
         _input_weights.resize(size);
 
         for (int i = 0; i < size; ++i)
-            _input_weights[i] = (float)std::min(i, size - 1 - i);
+            _input_weights[i] = static_cast<float>(std::min(i, size - 1 - i));
     }
 }
 
