@@ -8,9 +8,8 @@
 #ifndef effect_h
 #define effect_h
 
+#include "resources.h"
 #include "processor.h"
-#include <unordered_set>
-#include <cstdint>
 
 
 template <class ptype>
@@ -34,7 +33,7 @@ public:
     {
     }
 
-    virtual void changedParam(const OFX::InstanceChangedArgs& args, const std::string& paramName);
+    virtual void changedParam(const OFX::InstanceChangedArgs& args, const std::string& param_name);
     virtual void render(const OFX::RenderArguments& args);
 
     void process(Processor<ptype>& processor, const OFX::RenderArguments& args);
@@ -46,7 +45,7 @@ public:
 
     const std::vector<float>& input_weights() { return _input_weights; }
 
-    std::vector<fx::point>& sample_points() { return _sample_points; }
+    std::vector<makehdr::point>& sample_points() { return _sample_points; }
     std::unordered_set<int64_t>& sample_set() { return _sample_set; }
     
     void set_input_weights(int size);
@@ -57,26 +56,26 @@ public:
     double* response_linear() { return _response_linear.data(); }
     void set_response_linear_size(int depth) { _response_linear.resize(depth); }
 
-    float exposure(const double& time) { return (float)_exposure->getValueAtTime(time); }
-    float gamma(const double& time) { return (float)_gamma->getValueAtTime(time); }
-    float highlights(const double& time) { return (float)_highlights->getValueAtTime(time); }
+    float exposure(const double& time) { return static_cast<float>(_exposure->getValueAtTime(time)); }
+    float gamma(const double& time) { return static_cast<float>(_gamma->getValueAtTime(time)); }
+    float highlights(const double& time) { return static_cast<float>(_highlights->getValueAtTime(time)); }
     bool calibrate(const double& time) { bool val; _calibrate->getValueAtTime(time, val); return val; }
     bool use_middle_gray(const double& time) { bool val; _use_middle_gray->getValueAtTime(time, val); return val; }
     float middle_gray(const double& time)
     {
         double r, g, b, a;
         _middle_gray->getValueAtTime(time, r, g, b, a);
-        return 0.212671f * (float)r + 0.71516f * (float)g + 0.072169f * (float)b;
+        return 0.212671f * static_cast<float>(r) + 0.71516f * static_cast<float>(g) + 0.072169f * static_cast<float>(b);
     }
     bool show_samples(const double& time) { bool val; _show_samples->getValueAtTime(time, val); return val; }
     int samples(const double& time) { return _samples->getValueAtTime(time); }
     int solver_type(const double& time) { int type; _solver->getValueAtTime(time, type); return type; }
-    float smoothness(const double& time) { return (float)_smoothness->getValueAtTime(time); }
+    float smoothness(const double& time) { return static_cast<float>(_smoothness->getValueAtTime(time)); }
     int input_depth(const double& time) { int depth; _input_depth->getValueAtTime(time, depth); return _input_depths[depth]; }
     int log_level(const double& time) { int level; _log_level->getValueAtTime(time, level); return level; }
 
 protected:
-    fx::timer _timer;
+    makehdr::timer _timer;
 
     bool _regen_calib = true;
     int _input_depths[3] = { 256, 1024, 4096 };
@@ -84,7 +83,7 @@ protected:
     std::vector<float> _input_weights;
     std::vector<double> _response;
     std::vector<double> _response_linear;
-    std::vector<fx::point> _sample_points;
+    std::vector<makehdr::point> _sample_points;
     std::unordered_set<int64_t> _sample_set;
 
     OFX::Clip* _dst_clip;

@@ -11,37 +11,40 @@
 #include "resources.h"
 
 
+namespace makehdr
+{
+
 /// Extracts the pixel value for a given point and channel, 
 /// returning an integer in the range [0, input_depth-1].
 template<typename ptype, typename ImageType>
 inline int extract_pixel_index(const std::shared_ptr<ImageType>& source, 
-            const fx::point& point, 
+            const makehdr::point& point, 
             const int channel, 
             const int input_depth)
 {
-    ptype* sample = (ptype*)source->getPixelAddress(point.x, point.y);
+    ptype* sample = static_cast<ptype*>(source->getPixelAddress(point.x, point.y));
     float sample_flt = sample == nullptr ? 0 : sample[channel];
     sample_flt = std::min<float>(sample_flt, 1.f);
     sample_flt = std::max<float>(sample_flt, 0.f);
 
-    return (int)(sample_flt * (input_depth - 1));
+    return static_cast<int>(sample_flt * (input_depth - 1));
 }
 
 /// Implements Paul E. Debevec & Jitendra Malik, 1997
 /// "Recovering High Dynamic Range Radiance Maps from Photographs"
 template<typename ptype, typename ImageType>
-void debevec_solver(const int channel,
+bool debevec_solver(const int channel,
             const int input_depth,
             const float smoothness,
             const std::vector<std::shared_ptr<ImageType>>& sources,
-            const std::vector<fx::point>& points,
+            const std::vector<makehdr::point>& points,
             const std::vector<float>& exp_times_log,
             const std::vector<float>& input_weights,
             double* response)
 {
 
-    const int sources_size = (int)sources.size();
-    const int samples_size = (int)points.size();
+    const int sources_size = static_cast<int>(sources.size());
+    const int samples_size = static_cast<int>(points.size());
 
     const int m = samples_size * sources_size + (input_depth - 2) + 1;
     const int n = input_depth + samples_size;
@@ -103,29 +106,29 @@ void debevec_solver(const int channel,
         for (int i = 0; i < input_depth; ++i)
             response[i] = s[i];
     }
-    else
-        spdlog::error("{}: Solver has failed for channel {}!", fx::label , channel);
+
+    return success;
 }
 
 /// Implements Mark A. Robertson et al., 1999
 /// "Dynamic Range Improvement Through Multiple Exposures"
 template<typename ptype, typename ImageType>
-void robertson_solver(const int channel,
+bool robertson_solver(const int channel,
                       const int input_depth,
                       const int iterations,
                       const std::vector<std::shared_ptr<ImageType>>& sources,
-                      const std::vector<fx::point>& points,
+                      const std::vector<makehdr::point>& points,
                       const std::vector<float>& exp_times,
                       const std::vector<float>& input_weights,
                       double* response)
 {
 
-    const int sources_size = (int)sources.size();
-    const int samples_size = (int)points.size();
+    const int sources_size = static_cast<int>(sources.size());
+    const int samples_size = static_cast<int>(points.size());
 
     std::vector<double> I(input_depth);
     for (int i = 0; i < input_depth; ++i)
-        I[i] = (double)i / (double)(input_depth - 1);
+        I[i] = static_cast<double>(i) / static_cast<double>(input_depth - 1);
 
     std::vector<double> E(samples_size, 0.0);
 
@@ -139,6 +142,7 @@ void robertson_solver(const int channel,
         }
     }
 
+    int last_valid = -1;
     for (int iter = 0; iter < iterations; ++iter)
     {
         /// 1. Estimate irradiance E for each sample
@@ -187,16 +191,16 @@ void robertson_solver(const int channel,
         }
 
         /// 3. Interpolate unobserved values in the Log-Domain
-        int last_valid = -1;
+        last_valid = -1;
         for (int m = 0; m < input_depth; ++m) {
             if (I[m] >= 0.0) {
                 if (last_valid == -1) {
-                    for (int k = 0; k < m; ++k) I[k] = I[m] * ((double)k / std::max(1, m)); 
+                    for (int k = 0; k < m; ++k) I[k] = I[m] * (static_cast<double>(k) / std::max(1, m));
                 } else if (m - last_valid > 1) {
                     double v0 = std::log(std::max(1e-12, I[last_valid]));
                     double v1 = std::log(std::max(1e-12, I[m]));
                     for (int k = last_valid + 1; k < m; ++k) {
-                        double t = (double)(k - last_valid) / (m - last_valid);
+                        double t = static_cast<double>(k - last_valid) / (m - last_valid);
                         I[k] = std::exp(v0 + t * (v1 - v0));
                     }
                 }
@@ -208,6 +212,9 @@ void robertson_solver(const int channel,
                 I[k] = I[last_valid] * 1.001; // Slight extrapolation
             }
         }
+
+        /// Degenerate: no bin observed — skip monotonicity, normalisation and remaining iterations
+        if (last_valid == -1) break;
 
         /// 4. Enforce strict monotonicity (crucial to prevent color channel inversions)
         for (int m = 1; m < input_depth; ++m) {
@@ -223,14 +230,24 @@ void robertson_solver(const int channel,
         }
     }
 
+    /// Degenerate output: no bin was ever observed (e.g. all-black or fully-clipped inputs).
+    const bool success = (last_valid != -1);
+
     /// 6. Output Logarithmic Response exactly like Debevec so processor logic stays identical
-    for (int m = 0; m < input_depth; ++m)
+    if (success)
     {
-        if (I[m] <= 0.0)
-            response[m] = std::log(1e-6); 
-        else
-            response[m] = std::log(I[m]);
+        for (int m = 0; m < input_depth; ++m)
+        {
+            if (I[m] <= 0.0)
+                response[m] = std::log(1e-6); 
+            else
+                response[m] = std::log(I[m]);
+        }
     }
+
+    return success;
 }
+
+} // namespace makehdr
 
 #endif

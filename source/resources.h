@@ -17,13 +17,7 @@
 #include <unordered_set>
 #include <cstdint>
 
-#include "spdlog/spdlog.h"
-
 #include "armadillo"
-
-#include "ofxsImageEffect.h"
-#include "ofxsMultiThread.h"
-#include "ofxsProcessing.H"
 
 #define VERSION_MAJOR 1
 #define VERSION_MINOR 4
@@ -33,7 +27,7 @@
 #define SRC_MAX 16
 
 
-namespace fx
+namespace makehdr
 {
     const std::string label = "MakeHDR";
     const std::string version = std::to_string(VERSION_MAJOR) + "." + 
@@ -43,7 +37,7 @@ namespace fx
     const std::string description = label + " v" + version + 
         " developed by Vahan Sosoyan";
 
-    enum ch
+    enum channel
     {
         r, g, b, a
     };
@@ -59,7 +53,7 @@ namespace fx
         int x;
         int y;
 
-        int64_t key() const { return (int64_t)x << 32 | (uint32_t)y; }
+        int64_t key() const { return static_cast<int64_t>(x) << 32 | static_cast<uint32_t>(y); }
     };
 
     class timer

@@ -11,6 +11,12 @@
 #include "resources.h"
 #include "solver.h"
 
+#include "ofxsImageEffect.h"
+#include "ofxsMultiThread.h"
+#include "ofxsProcessing.H"
+
+#include "spdlog/spdlog.h"
+
 
 template <class ptype>
 class Effect;
@@ -34,17 +40,17 @@ public:
     {
         if (_sources.empty())
         {
-            spdlog::debug("[{}] sources are empty!", fx::label);
+            spdlog::debug("[{}] sources are empty!", makehdr::label);
             return;
         }
         if (_effect.abort())
         {
-            spdlog::debug("[{}] effect calibrate abort!", fx::label);
+            spdlog::debug("[{}] effect calibrate abort!", makehdr::label);
             return;
         }
         if (!_effect.regen_calib() && !_effect.input_weights().empty())
         {
-            spdlog::debug("[{}] calibrate skipped!", fx::label);
+            spdlog::debug("[{}] calibrate skipped!", makehdr::label);
             return;
         }
 
@@ -69,11 +75,11 @@ public:
                 float fallback_log[3] = { 0.f, 0.f, 0.f };
                 float min_exp_log = FLT_MAX;
 
-                ptype* dst = (ptype*)_dstImg->getPixelAddress(x, y);
+                ptype* dst = static_cast<ptype*>(_dstImg->getPixelAddress(x, y));
 
-                for (int i = 0; i < _sources.size(); ++i)
+                for (int i = 0; i < static_cast<int>(_sources.size()); ++i)
                 {
-                    const ptype* src = (ptype*)_sources[i]->getPixelAddress(x, y);
+                    const ptype* src = static_cast<ptype*>(_sources[i]->getPixelAddress(x, y));
 
                     if (src == nullptr) return;
 
@@ -82,7 +88,7 @@ public:
                     for (int c = 0; c < CMP_MAX; ++c)
                     {
                         const ptype sample = std::min<ptype>(std::max<ptype>(src[c], 0.f), 1.f);
-                        const int bin = (int)(sample * (_input_depth - 1));
+                        const int bin = static_cast<int>(sample * (_input_depth - 1));
                         weight_src += _effect.input_weights()[bin];
                         response_log[c] = lookup_response(bin, c);
                     }
@@ -97,7 +103,7 @@ public:
                         min_exp_log = _exp_times_log[i];
                         for (int c = 0; c < CMP_MAX; ++c)
                         {
-                            const float raw = (float)src[c];
+                            const float raw = static_cast<float>(src[c]);
                             fallback_log[c] = raw > 1.0f
                                 ? std::log(raw) - _exp_times_log[i]
                                 : response_log[c] - _exp_times_log[i];
@@ -116,13 +122,13 @@ public:
                         ? result[c] / weight_sum
                         : fallback_log[c];
                     const float hdr = std::exp(log_hdr);
-                    dst[c] = (ptype)pow(hdr, 1.f / _gamma);
+                    dst[c] = static_cast<ptype>(std::pow(hdr, 1.f / _gamma));
                 }
 
-                if(_show_samples && _effect.sample_set().count(fx::point(x, y).key()))
-                    dst[fx::ch::g] = FLT_MAX;
+                if(_show_samples && _effect.sample_set().count(makehdr::point(x, y).key()))
+                    dst[makehdr::channel::g] = FLT_MAX;
 
-                dst[fx::ch::a] = 1.0f;
+                dst[makehdr::channel::a] = 1.0f;
             }
         }
     }
@@ -131,7 +137,7 @@ public:
     {
         if (_sources.empty()) return;
 
-        ptype* dst = (ptype*)_dstImg->getPixelData();
+        ptype* dst = static_cast<ptype*>(_dstImg->getPixelData());
 
         /// Pass 1: scene maximum (always needed for Reinhard) and, when middle gray is enabled, 
         /// log-average of linear luminance for normalisation.
@@ -149,9 +155,9 @@ public:
 
             if (_use_middle_gray)
             {
-                const float r_lin = std::pow(std::max(0.f, dst[i + fx::ch::r]), _gamma);
-                const float g_lin = std::pow(std::max(0.f, dst[i + fx::ch::g]), _gamma);
-                const float b_lin = std::pow(std::max(0.f, dst[i + fx::ch::b]), _gamma);
+                const float r_lin = std::pow(std::max(0.f, dst[i + makehdr::channel::r]), _gamma);
+                const float g_lin = std::pow(std::max(0.f, dst[i + makehdr::channel::g]), _gamma);
+                const float b_lin = std::pow(std::max(0.f, dst[i + makehdr::channel::b]), _gamma);
                 const float lum_lin = 0.212671f * r_lin + 0.71516f * g_lin + 0.072169f * b_lin;
                 if (lum_lin > 0.f)
                 {
@@ -173,7 +179,7 @@ public:
         float pixel_scale;
         if (_use_middle_gray && _middle_gray > 0.f)
         {
-            const float lum_linear_avg = pixel_count > 0 ? std::exp((float)(log_sum / pixel_count)) : 1.f;
+            const float lum_linear_avg = pixel_count > 0 ? std::exp(static_cast<float>(log_sum / pixel_count)) : 1.f;
             pixel_scale = lum_linear_avg > 0.f
                 ? std::pow(_middle_gray * std::pow(2.f, _exposure) / lum_linear_avg, 1.f / _gamma)
                 : 1.f;
@@ -208,7 +214,7 @@ public:
         }
 
         if(!_effect.abort() && !_sources.empty())
-            spdlog::info("[{}] {} sources merged in {}ms", fx::label, _sources.size(), _timer.get());
+            spdlog::info("[{}] {} sources merged in {}ms", makehdr::label, _sources.size(), _timer.get());
     }
 
     void set_parameters(const double& time)
@@ -232,10 +238,10 @@ public:
         _effect.sample_points().clear();
         _effect.sample_set().clear();
 
-        const float aspect = (float)_width / (float)_height;
+        const float aspect = static_cast<float>(_width) / static_cast<float>(_height);
         
         const int actual_samples = (_solver_type == 0) ? _samples : _samples * 100;
-        const int x_points = std::max(1, (int)(sqrt(aspect * actual_samples)));
+        const int x_points = std::max(1, static_cast<int>(std::sqrt(aspect * actual_samples)));
         const int y_points = std::max(1, actual_samples / x_points);
 
         const int step_x = std::max(1, _width / x_points);
@@ -247,9 +253,9 @@ public:
             {
                 if (0 <= x && x < _width && 0 <= y && y < _height)
                 {
-                    _effect.sample_points().push_back(fx::point(x, y));
-                    _effect.sample_set().insert(fx::point(x, y).key());
-                    spdlog::debug("{}: Getting sample pos({}, {})", fx::label, x, y);
+                    _effect.sample_points().push_back(makehdr::point(x, y));
+                    _effect.sample_set().insert(makehdr::point(x, y).key());
+                    spdlog::debug("{}: Getting sample pos({}, {})", makehdr::label, x, y);
                 }
             }
         }
@@ -260,25 +266,37 @@ public:
         {
             if (_solver_type == 0)
             {
-                threads[c] = std::thread(debevec_solver<ptype, OFX::Image>, c,
-                                                        _input_depth,
-                                                        _smoothness,
-                                                        _sources,
-                                                        _effect.sample_points(),
-                                                        _exp_times_log,
-                                                        _effect.input_weights(),
-                                                        _effect.response(_input_depth, c));
+                threads[c] = std::thread([this, c]() {
+                    bool success = makehdr::debevec_solver<ptype, OFX::Image>(c,
+                                                            _input_depth,
+                                                            _smoothness,
+                                                            _sources,
+                                                            _effect.sample_points(),
+                                                            _exp_times_log,
+                                                            _effect.input_weights(),
+                                                            _effect.response(_input_depth, c));
+                    if (!success)
+                        spdlog::error("{}: Debevec calibration failed on {} channel — "
+                                      "check exposure spread and sample count",
+                                      makehdr::label, "RGB"[c]);
+                });
             }
             else if (_solver_type == 1)
             {
-                threads[c] = std::thread(robertson_solver<ptype, OFX::Image>, c,
-                                                        _input_depth,
-                                                        (int)_smoothness,
-                                                        _sources,
-                                                        _effect.sample_points(),
-                                                        _exp_times,
-                                                        _effect.input_weights(),
-                                                        _effect.response(_input_depth, c));
+                threads[c] = std::thread([this, c]() {
+                    bool success = makehdr::robertson_solver<ptype, OFX::Image>(c,
+                                                            _input_depth,
+                                                            static_cast<int>(_smoothness),
+                                                            _sources,
+                                                            _effect.sample_points(),
+                                                            _exp_times,
+                                                            _effect.input_weights(),
+                                                            _effect.response(_input_depth, c));
+                    if (!success)
+                        spdlog::error("{}: Robertson calibration failed on {} channel — "
+                                      "no sample points could be generated",
+                                      makehdr::label, "RGB"[c]);
+                });
             }
         }
 
@@ -342,13 +360,13 @@ public:
     inline float lookup_response(int bin, int channel) const
     {
         return _calibrate
-            ? (float)_effect.response(_input_depth, channel)[bin]
-            : (float)_effect.response_linear()[bin];
+            ? static_cast<float>(_effect.response(_input_depth, channel)[bin])
+            : static_cast<float>(_effect.response_linear()[bin]);
     }
 
     inline float luminance(float* rgb)
     {
-        return 0.212671f * rgb[fx::ch::r] + 0.71516f * rgb[fx::ch::g] + 0.072169f * rgb[fx::ch::b];
+        return 0.212671f * rgb[makehdr::channel::r] + 0.71516f * rgb[makehdr::channel::g] + 0.072169f * rgb[makehdr::channel::b];
     }
 
     int pixel_size() { return _width * _height * _components; }
@@ -363,7 +381,7 @@ private:
     int _height = 0;
     int _components = 0;
 
-    fx::timer _timer;
+    makehdr::timer _timer;
 
     std::vector<float> _exp_times;
     std::vector<float> _exp_times_log;
