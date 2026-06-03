@@ -157,13 +157,8 @@ void Effect<ptype>::set_log_level(int level)
 template<class ptype>
 void Effect<ptype>::set_input_weights(int size)
 {
-    if (size != _input_weights.size())
-    {
-        _input_weights.resize(size);
-
-        for (int i = 0; i < size; ++i)
-            _input_weights[i] = static_cast<float>(std::min(i, size - 1 - i));
-    }
+    if (size != static_cast<int>(_input_weights.size()))
+        _input_weights = makehdr::build_weights(size);
 }
 
 void EffectPluginFactory::describe(OFX::ImageEffectDescriptor& desc)
